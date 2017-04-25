@@ -57,7 +57,8 @@ int main(int argc, char *argv[]) {
     //   ((struct sockaddr_in*)result)->sin_port
     // );
 
-  
+  struct addrinfo *socket_addrinfo;
+
   for (result = results; result != NULL; result = result->ai_next) {
     err = bind(socket_fd, result->ai_addr, result->ai_addrlen);
 
@@ -65,6 +66,8 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
     } else {
       printf("Connected\n");
+      socket_addrinfo = result;
+      break;
     }
   }
 
@@ -74,9 +77,9 @@ int main(int argc, char *argv[]) {
   int n = recvfrom(
     socket_fd,
     buf,
-    sizeof(buf),
+    1024,
     0,
-    result->ai_addr,
+    socket_addrinfo->ai_addr,
     &len
   );
 
