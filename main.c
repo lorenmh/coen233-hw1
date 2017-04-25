@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 
 const char *HOSTNAME = "localhost";
 const char *PORT = "8000";
@@ -57,7 +58,7 @@ int main(int argc, char *argv[]) {
     //   ((struct sockaddr_in*)result)->sin_port
     // );
 
-  struct addrinfo *socket_addrinfo;
+  struct sockaddr_in *addr;
 
   for (result = results; result != NULL; result = result->ai_next) {
     err = bind(socket_fd, result->ai_addr, result->ai_addrlen);
@@ -65,8 +66,8 @@ int main(int argc, char *argv[]) {
     if (err) {
       fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
     } else {
-      printf("Connected\n");
-      socket_addrinfo = result;
+      addr = (struct sockaddr_in *)result->ai_addr;
+      printf("Bind successful, address: %s\n", inet_ntoa(addr->sin_addr));
       break;
     }
   }
@@ -79,11 +80,9 @@ int main(int argc, char *argv[]) {
     buf,
     1024,
     0,
-    socket_addrinfo->ai_addr,
+    (struct sockaddr *)addr,
     &len
   );
 
-  printf("After listen\n");
-
-
+  printf("RECEIVED: %s\n", buf);
 }
