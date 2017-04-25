@@ -22,7 +22,8 @@ typedef enum reject_t {
 
 typedef enum error_t {
   ERR_OPEN_DELIMETER = 1,
-  ERR_CLOSE_DELIMETER
+  ERR_CLOSE_DELIMETER,
+  ERR_INVALID_TYPE
 } error_t;
 
 typedef struct packet {
