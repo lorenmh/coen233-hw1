@@ -5,12 +5,20 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-#include "types.h"
-
-const char *HOSTNAME = "localhost";
-const char *PORT = "8000";
+#include "protocol.h"
 
 int main(int argc, char *argv[]) {
+  if (argc != 4) {
+    fprintf(stderr, "Error: Missing required arg, needs <server-hostname> ");
+    fprintf(stderr, "<server-port> <client-hostname> <client-port>\n");
+    return 1;
+  }
+
+  char const *server_hostname = argv[0];
+  char const *server_port = argv[1];
+  char const *client_hostname = argv[2];
+  char const *client_port = argv[3];
+
   int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
   if (socket_fd < 0) {
@@ -30,7 +38,7 @@ int main(int argc, char *argv[]) {
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_DGRAM;
 
-  int err = getaddrinfo(HOSTNAME, PORT, &hints, &results);
+  int err = getaddrinfo(server_hostname, server_port, &hints, &results);
 
   if (err) {
     fprintf(stderr, "Error invoking getaddrinfo: %s\n", strerror(errno));

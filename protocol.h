@@ -1,3 +1,7 @@
+#ifndef __TYPES__
+#define __TYPES__
+
+#include <string.h>
 #include <stdint.h>
 #include <sys/socket.h>
 
@@ -22,7 +26,7 @@ typedef struct packet_header {
 typedef struct packet_data_body {
   uint8_t pid;
   uint8_t len;
-  uint8_t payload;
+  uint8_t *payload;
 } packet_data_body;
 
 typedef struct packet_ack_body {
@@ -36,3 +40,5 @@ typedef struct packet_rej_body {
 
 typedef struct message {
 } message;
+
+#endif
