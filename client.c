@@ -5,12 +5,12 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
+#include "types.h"
+
 const char *HOSTNAME = "localhost";
 const char *PORT = "8000";
 
 int main(int argc, char *argv[]) {
-  printf("yo\n");
-
   int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
   if (socket_fd < 0) {
@@ -36,35 +36,13 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Error invoking getaddrinfo: %s\n", strerror(errno));
   }
 
-    // char hostname[NI_MAXHOST];
-
-    // err = getnameinfo(
-    //   result->ai_addr,
-    //   result->ai_addrlen,
-    //   hostname,
-    //   NI_MAXHOST,
-    //   NULL,
-    //   0,
-    //   0
-    // );
-
-    // if (err != 0) {
-    //     fprintf(stderr, "Error invoking getnameinfo: %s\n", strerror(errno));
-    // }
-
-    // printf(
-    //   "Hostname: %s, Port: %d",
-    //   hostname,
-    //   ((struct sockaddr_in*)result)->sin_port
-    // );
-
-  struct sockaddr_in *addr;
+  struct sockaddr_in *addr = NULL;
 
   for (result = results; result != NULL; result = result->ai_next) {
     err = bind(socket_fd, result->ai_addr, result->ai_addrlen);
 
     if (err) {
-      fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
+      // fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
     } else {
       addr = (struct sockaddr_in *)result->ai_addr;
       printf("Bind successful, address: %s\n", inet_ntoa(addr->sin_addr));
@@ -72,8 +50,12 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if (!addr) {
+    fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
+  }
+
   char buf[1024];
-  socklen_t len = sizeof(result->ai_addr);
+  socklen_t len = sizeof(addr);
 
   int n = recvfrom(
     socket_fd,

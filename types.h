@@ -1,20 +1,18 @@
-#include <stdio.h>
-#include <string.h>
 #include <stdint.h>
 #include <sys/socket.h>
 
-typedef enum ptype {
+typedef enum packet_t {
   DATA = 0xFFF1,
   ACK = 0xFFF2,
   REJECT = 0xFFF3
-} ptype;
+} packet_t;
 
-typedef enum rtype {
+typedef enum reject_t {
   OUT_OF_SEQ = 0xFFF4,
   LEN_MISMATCH = 0xFFF5,
   END_PACKET_MISSING = 0xFFF6,
   DUP_PACKET = 0xFFF7
-} rtype;
+} reject_t;
 
 typedef struct packet_header {
   uint8_t client_id;
@@ -36,16 +34,5 @@ typedef struct packet_rej_body {
   uint8_t pid;
 } packet_rej_body;
 
-int main(int argc, char *argv[]) {
-  unsigned char buf[] = {
-    0,
-    0xFF,
-    0xF2,
-    0x00
-  };
-
-  packet_header header;
-  memcpy(&header, buf, 3);
-
-  printf("%d\n", header.type);
-}
+typedef struct message {
+} message;
