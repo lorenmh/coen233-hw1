@@ -8,7 +8,7 @@
 #include "protocol.h"
 
 // function prototypes
-void resolve_packet_header(char*,packet_header*);
+void resolve_packet_header(char*,packet*);
 
 int main(int argc, char *argv[]) {
   if (argc != 5) {
@@ -79,12 +79,12 @@ int main(int argc, char *argv[]) {
     &len
   );
 
-  packet_header header;
-  resolve_packet_header(buf, &header);
+  packet p;
+  resolve_packet_header(buf, &p);
 
   printf(
     "RECEIVED: client_id: %d, type: %d\n",
-    header.client_id,
-    header.type
+    p.client_id,
+    p.type
   );
 }

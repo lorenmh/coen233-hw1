@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <sys/socket.h>
 
+#define DELIMETER 0xFFFF
+
 typedef enum packet_t {
   DATA = 0xFFF1,
   ACK = 0xFFF2,
@@ -18,27 +20,18 @@ typedef enum reject_t {
   DUP_PACKET = 0xFFF7
 } reject_t;
 
-typedef struct packet_header {
+typedef enum error_t {
+  ERR_OPEN_DELIMETER = 1,
+  ERR_CLOSE_DELIMETER
+} error_t;
+
+typedef struct packet {
   uint8_t client_id;
   uint16_t type;
-} packet_header;
-
-typedef struct packet_data_body {
-  uint8_t pid;
+  uint8_t segment_id;
   uint8_t len;
   uint8_t *payload;
-} packet_data_body;
-
-typedef struct packet_ack_body {
-  uint8_t pid;
-} packet_ack_body;
-
-typedef struct packet_rej_body {
-  uint16_t rid;
-  uint8_t pid;
-} packet_rej_body;
-
-typedef struct message {
-} message;
+  uint8_t reject_id;
+} packet;
 
 #endif
