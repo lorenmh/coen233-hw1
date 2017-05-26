@@ -1,7 +1,17 @@
 #include <stdlib.h>
 #include "protocol.h"
 
-uint16_t ntohs(uint16_t netshort);
+/*+============================================================================
+ * protocol.c:
+ * -----------
+ * Contains utility functions for implementing the protcol.
+ * 
+ * resolve_packet:
+ * Given a pointer to a buffer containing a request and a pointer to a memory allocated packet, will populate the values in packet. If errors are encountered, the packet will
+ * 
+=============================================================================*/
+
+//uint16_t ntohs(uint16_t netshort);
 
 // Assume that buf has been allocated enough space, otherwise segfault
 int resolve_packet(char const *buf, packet* p) {
