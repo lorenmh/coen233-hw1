@@ -18,10 +18,10 @@
  * -----
  * void *p: a pointer to a packet
  * packet_t pt: a packet type value
- * parser_return_t rt: a return type value
+ * parser_return_t rt: a parser return type value
  * char *s: An allocated string in which the text data will be populated
 =============================================================================*/
-void ptos(void *p, packet_t pt, parser_return_t rt, char *s) {
+void ptos(packet *p, parser_return_t rt, char *s) {
 	char *resolution_str = "";
 	if (rt == SUCCESS) {
 		resolution_str = "PARSER SUCCESS";
@@ -36,6 +36,8 @@ void ptos(void *p, packet_t pt, parser_return_t rt, char *s) {
 	} else {
 		resolution_str = "PARSER INFORMATION NOT PROVIDED";
 	}
+
+	packet_t pt = p->type;
 
 	if (pt == DATA || pt == ACC_PER || pt == NOT_PAID ||
 			pt == NOT_EXIST || pt == ACCESS_OK) {
@@ -144,19 +146,35 @@ void ptos(void *p, packet_t pt, parser_return_t rt, char *s) {
  * FILE* verification_db: a pointer to the Verification_Database.txt file
 =============================================================================*/
 void response_packet(
-		packet const *cp,
-		packet_t const ct,
-		parser_return_t const prt,
-		packet* const rp,
-		packet_t* const rt,
+		packet const *req_p,
+		parser_return_t const req_prt,
+		packet* const res_p,
 		uint8_t* const client_table,
 		FILE* verification_db) {
+
+	// only server can send ACK/REJECT
+	if (req_p->type == ACK || req_p->type == REJECT || req_prt != SUCCESS) {
+		reject_packet *res_rp = (reject_packet*) res_p;
+		data_packet *req_dp = (data_packet*) req_p;
+
+		if (req_p->type == DATA && req_prt == ERR_CLOSE_DELIMITER) {
+			res_rp->client_id = req_dp->client_id;
+			res_rp->type = REJECT;
+			res_rp->reject_id = END_PACKET_MISSING;
+			res_rp->segment_id = req_dp->segment_id;
+			return;
+		}
+
+		if (req_p->type == DATA && req_prt == ERR_LEN_MISMATCH) {
+		}
+
+		// generic reject response;
+	}
 }
 
 parser_return_t parse_packet_buf(
 		char const *buf,
-		void* const p,
-		packet_t* const pt) {
+		void* const p) {
 
 	uint8_t client_id;
 	uint16_t type;
@@ -184,7 +202,7 @@ parser_return_t parse_packet_buf(
 	int close_addr;
 	if (type == ACK) {
 		ack_packet *ap = (ack_packet*) p;
-		*pt = ACK;
+
 		// copy segment id
 		memcpy(&segment_id, &buf[5], 1);
 		// set close addr to check closing delimiter
@@ -196,7 +214,6 @@ parser_return_t parse_packet_buf(
 
 	} else if (type == REJECT) {
 		reject_packet *rp = (reject_packet*) p;
-		*pt = REJECT;
 
 		// copy reject id
 		memcpy(&netshort, &buf[5], 2);
@@ -212,7 +229,6 @@ parser_return_t parse_packet_buf(
 		rp->segment_id = segment_id;
 	} else if (type == DATA) {
 		data_packet *dp = (data_packet*) p;
-		*pt = DATA;
 
 		// copy segment id
 		memcpy(&segment_id, &buf[5], 1);

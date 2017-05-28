@@ -45,7 +45,9 @@ typedef enum parser_return_t {
 
 // generic packet type
 typedef struct packet {
-	uint8_t buf[MAX_PACKET_SIZE];
+	uint8_t client_id;
+	uint16_t type;
+	uint8_t buf[MAX_PACKET_SIZE - 3];
 } packet;
 
 typedef struct data_packet {

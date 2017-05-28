@@ -8,8 +8,8 @@
 #include "protocol.h"
 
 // function prototypes
-int parse_packet_buf(char*,void*,packet_t*);
-int ptos(void*,packet_t,parser_return_t,char*);
+int parse_packet_buf(char*,packet*);
+int ptos(packet*,parser_return_t,char*);
 
 int main(int argc, char *argv[]) {
 	// remove buffering from stdout
@@ -98,8 +98,7 @@ int main(int argc, char *argv[]) {
 		);
 
 		packet p;
-		packet_t pt;
-		err = parse_packet_buf(buf, &p, &pt);
+		err = parse_packet_buf(buf, &p);
 
 		printf("----------------------------------------\n");
 		printf(
@@ -109,14 +108,7 @@ int main(int argc, char *argv[]) {
 		);
 
 		char str[1024];
-		ptos(&p, pt, err, str);
-
+		ptos(&p, err, str);
 		printf("%s", str);
-
-		//printf("\terr: %d\n", err);
-		//printf("\tclient_id: %d\n", p.client_id);
-		//printf("\ttype: %d\n", p.type);
-		//printf("\tlen: %d\n", p.len);
-		//printf("\tpayload: '%.*s'\n", p.len, p.payload);
 	}
 }
