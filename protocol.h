@@ -11,26 +11,37 @@
 #define MAX_PACKET_SIZE 264
 
 typedef enum packet_t {
-	DATA = 0xFFF1,
-	ACK = 0xFFF2,
-	REJECT = 0xFFF3
+	DATA = 0xfff1,
+	ACK = 0xfff2,
+	REJECT = 0xfff3,
+	ACC_PER = 0xfff8,
+	NOT_PAID = 0xfff9,
+	NOT_EXIST = 0xfffa,
+	ACCESS_OK = 0xfffb
 } packet_t;
+
+typedef enum tech_t {
+	TECH_2G = 2,
+	TECH_3G = 3,
+	TECH_4G = 4,
+	TECH_5G = 5
+} tech_t;
 
 
 typedef enum reject_t {
-	OUT_OF_SEQ = 0xFFF4,
-	LEN_MISMATCH = 0xFFF5,
-	END_PACKET_MISSING = 0xFFF6,
-	DUP_PACKET = 0xFFF7
+	OUT_OF_SEQ = 0xfff4,
+	LEN_MISMATCH = 0xfff5,
+	END_PACKET_MISSING = 0xfff6,
+	DUP_PACKET = 0xfff7
 } reject_t;
 
-typedef enum return_t {
+typedef enum parser_return_t {
 	SUCCESS = 0,
 	ERR_OPEN_DELIMITER,
 	ERR_CLOSE_DELIMITER,
 	ERR_LEN_MISMATCH,
 	ERR_INVALID_FMT
-} return_t;
+} parser_return_t;
 
 // generic packet type
 typedef struct packet {
@@ -59,12 +70,12 @@ typedef struct reject_packet {
 } reject_packet;
 
 typedef struct client {
-  uint8_t segment_no;
+	uint8_t segment_no;
 } client;
 
 typedef struct client_table {
-  client *ptrs[CLIENT_TABLE_SIZE];
-  client buf[CLIENT_TABLE_SIZE];
+	client *ptrs[CLIENT_TABLE_SIZE];
+	client buf[CLIENT_TABLE_SIZE];
 } client_table;
 
 //typedef struct packet_list_node {

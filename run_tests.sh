@@ -15,6 +15,7 @@ to_hex(){
   n="$1"
   hex=$(echo "obase=16; $n" | bc)
   hex_len=${#hex}
+  # leftpad
   #if [[ $((hex_len % 2)) -ne "0" ]];
   #then
   #  hex="0$hex"
@@ -38,8 +39,6 @@ LEN=$(to_hex "$LEN_TEXT")
 test_data="$DELIM$ID$DATA$SEGN$LEN$MESSAGE$DELIM"
 test_ack="$DELIM$ID$ACK$SEGN$DELIM"
 test_rej="$DELIM$ID$REJECT$REJECT_ID$SEGN$DELIM"
-
-echo $test_rej
 
 echo -n -e "$test_data" | nc -u 127.0.0.1 8000 &
 echo -n -e "$test_ack" | nc -u 127.0.0.1 8000 &

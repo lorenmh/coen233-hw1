@@ -1,46 +1,69 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdlib.h>
 #include "protocol.h"
 
-/*+============================================================================
+/*============================================================================
  * protocol.c:
  * -----------
  * Contains utility functions for implementing the protcol.
- * 
- * resolve_packet:
- * Given a pointer to a buffer containing a request and a pointer to a memory allocated packet, will populate the values in packet. If errors are encountered, the packet will
- * 
 =============================================================================*/
 
-void ptos(void *p, packet_t pt, return_t rt, char *s) {
+/*============================================================================
+ * void ptos(...):
+ * ---------------
+ * Populates a char* with text information for a given packet
+ * 
+ * args:
+ * -----
+ * void *p: a pointer to a packet
+ * packet_t pt: a packet type value
+ * parser_return_t rt: a return type value
+ * char *s: An allocated string in which the text data will be populated
+=============================================================================*/
+void ptos(void *p, packet_t pt, parser_return_t rt, char *s) {
 	char *resolution_str = "";
 	if (rt == SUCCESS) {
-		resolution_str = "RESOLUTION SUCCESS";
+		resolution_str = "PARSER SUCCESS";
 	} else if (rt == ERR_OPEN_DELIMITER) {
-		resolution_str = "RESOLUTION ERROR: ERR_OPEN_DELIMITER";
+		resolution_str = "PARSER ERROR: ERR_OPEN_DELIMITER";
 	} else if (rt == ERR_CLOSE_DELIMITER) {
-		resolution_str = "RESOLUTION ERROR: ERR_CLOSE_DELIMITER";
+		resolution_str = "PARSER ERROR: ERR_CLOSE_DELIMITER";
 	} else if (rt == ERR_LEN_MISMATCH) {
-		resolution_str = "RESOLUTION ERROR: ERR_LEN_MISMATCH";
+		resolution_str = "PARSER ERROR: ERR_LEN_MISMATCH";
 	} else if (rt == ERR_INVALID_FMT) {
-		resolution_str = "RESOLUTION ERROR: ERR_INVALID_FMT";
+		resolution_str = "PARSER ERROR: ERR_INVALID_FMT";
 	} else {
-		resolution_str = "RESOLUTION INFORMATION NOT PROVIDED";
+		resolution_str = "PARSER INFORMATION NOT PROVIDED";
 	}
 
-	if (pt == DATA) {
+	if (pt == DATA || pt == ACC_PER || pt == NOT_PAID ||
+			pt == NOT_EXIST || pt == ACCESS_OK) {
 		data_packet *dp = (data_packet*) p;
+
+		char *type_s = "DATA";
+		if (pt == ACC_PER) {
+			type_s = "ACC_PER";
+		} else if (pt == NOT_PAID) {
+			type_s = "NOT_PAID";
+		} else if (pt == NOT_EXIST) {
+			type_s = "NOT_EXIST";
+		} else if (pt == ACCESS_OK) {
+			type_s = "ACCESS_OK";
+		}
+
 		sprintf(
 				s,
 				"%s\n"
 				"Client ID: 0x%02x\n"
-				"Type: 0x%04x [DATA]\n"
+				"Type: 0x%04x [%s]\n"
 				"Segment No: 0x%02x\n"
 				"Length: 0x%02x\n"
 				"Payload: '%s'\n",
 				resolution_str,
 				dp->client_id,
 				dp->type,
+				type_s,
 				dp->segment_id,
 				dp->len,
 				dp->payload
@@ -99,8 +122,38 @@ void ptos(void *p, packet_t pt, return_t rt, char *s) {
 	}
 }
 
-// Assume that buf has been allocated enough space, otherwise segfault
-int resolve_packet(
+/*============================================================================
+ * void response_packet(...):
+ * --------------------------
+ * Populates a response packet with data. When given a request packet, if the
+ * packet is valid then response_packet will perform a lookup in the
+ * client_table to make sure the segment number is correct. If the request is
+ * an access request of some kind, response_packet will perform a lookup in the
+ * verification_db and will populate a response packet given this information.
+ * 
+ * args:
+ * -----
+ * packet const *cp: a pointer to the client packet
+ * packet_t ct: the client packet type
+ * parser_return_t prt: the parser return type for the client packet
+ * packet* const rp: a pointer to the response packet which will be populated
+ *   with data
+ * packet_t* const rt: a pointer to the response packet type which will be
+ *   populated with the value of the response packet type
+ * uint8_t* const client_table: a table of expected segment numbers for clients
+ * FILE* verification_db: a pointer to the Verification_Database.txt file
+=============================================================================*/
+void response_packet(
+		packet const *cp,
+		packet_t const ct,
+		parser_return_t const prt,
+		packet* const rp,
+		packet_t* const rt,
+		uint8_t* const client_table,
+		FILE* verification_db) {
+}
+
+parser_return_t parse_packet_buf(
 		char const *buf,
 		void* const p,
 		packet_t* const pt) {
@@ -183,7 +236,7 @@ int resolve_packet(
 			return ERR_LEN_MISMATCH;
 		}
 	} else {
-		// invalid type
+		// invalid format
 		return ERR_INVALID_FMT;
 	}
 
@@ -198,34 +251,34 @@ int resolve_packet(
 }
 
 // void ct_init(client_table* const ct) {
-//   memset(ct->ptrs, 0, sizeof(ct->ptrs));
-//   memset(ct->buf, 0, sizeof(ct->buf));
+// 	memset(ct->ptrs, 0, sizeof(ct->ptrs));
+// 	memset(ct->buf, 0, sizeof(ct->buf));
 // }
 // 
 // int ct_exists(client_table const *ct, uint8_t id) {
-//   return ct->ptrs[id] == NULL;
+// 	return ct->ptrs[id] == NULL;
 // }
 // 
 // void ct_create(client_table* const ct, uint8_t id) {
-//   // buf is memset to 0, and client's ze
-//   ct->ptrs[id] = &ct->buf[id];
+// 	// buf is memset to 0, and client's ze
+// 	ct->ptrs[id] = &ct->buf[id];
 // }
 // 
 // void ct_increment(client_table* const ct, uint8_t id) {
-//   (ct->buf[id]).segment_no += 1;
+// 	(ct->buf[id]).segment_no += 1;
 // }
 // 
 // void ct_delete(client_table* const ct, uint8_t id) {
-//   ct->ptrs[id] = NULL;
-//   memset(&ct->buf[id], 0, sizeof(client));
+// 	ct->ptrs[id] = NULL;
+// 	memset(&ct->buf[id], 0, sizeof(client));
 // }
 // 
 // int ct_expected_segment_no(client_table* const ct, uint8_t id) {
-//   if (!ct_exists(ct, id)) {
-//     ct_create(ct, id);
-//   }
+// 	if (!ct_exists(ct, id)) {
+// 		ct_create(ct, id);
+// 	}
 // 
-//   return ct->buf[id].segment_no;
+// 	return ct->buf[id].segment_no;
 // }
 
 //packet_list *create_packet_list() {
