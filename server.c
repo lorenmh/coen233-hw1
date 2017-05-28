@@ -8,7 +8,8 @@
 #include "protocol.h"
 
 // function prototypes
-int resolve_packet(char*,packet*);
+int resolve_packet(char*,void*,packet_t*);
+int ptos(void*,packet_t,return_t,char*);
 
 int main(int argc, char *argv[]) {
   // remove buffering from stdout
@@ -22,8 +23,6 @@ int main(int argc, char *argv[]) {
 
   char const *server_hostname = argv[1];
   char const *server_port = argv[2];
-  //char const *client_hostname = argv[3];
-  //char const *client_port = argv[4];
 
   int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -78,6 +77,12 @@ int main(int argc, char *argv[]) {
   }
 
   char buf[1024];
+
+  client client_table[0xff];
+  memset(client_table, 0, sizeof(client_table));
+
+  client c;
+
   socklen_t len = sizeof(client_addr);
 
   for(;;) {
@@ -93,7 +98,8 @@ int main(int argc, char *argv[]) {
     );
 
     packet p;
-    err = resolve_packet(buf, &p);
+		packet_t pt;
+    err = resolve_packet(buf, &p, &pt);
 
     printf("----------------------------------------\n");
     printf(
@@ -102,10 +108,15 @@ int main(int argc, char *argv[]) {
       ntohs(client_addr.sin_port)
     );
 
-    printf("\terr: %d\n", err);
-    printf("\tclient_id: %d\n", p.client_id);
-    printf("\ttype: %d\n", p.type);
-    printf("\tlen: %d\n", p.len);
-    printf("\tpayload: '%.*s'\n", p.len, p.payload);
+		char str[1024];
+		ptos(&p, pt, err, str);
+
+		printf("%s", str);
+
+    //printf("\terr: %d\n", err);
+    //printf("\tclient_id: %d\n", p.client_id);
+    //printf("\ttype: %d\n", p.type);
+    //printf("\tlen: %d\n", p.len);
+    //printf("\tpayload: '%.*s'\n", p.len, p.payload);
   }
 }
