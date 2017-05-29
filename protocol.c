@@ -10,6 +10,77 @@ void hexp(uint8_t *buf, int n) {
 	printf("\n");
 }
 
+// query, first byte == tech, next 4 bytes == subscriber number
+return_t query(FILE *fh, uint8_t *query) {
+	uint32_t sn_little_endian;
+	memcpy(&sn_little_endian, &query[1], 4);
+	uint32_t sn = ntohl(sn_little_endian);
+	uint8_t tech = query[0];
+
+	char sn_str[11];
+	char tech_str[3];
+
+	size_t n = 0;
+	char *line = NULL;
+	int read;
+
+	char sn_column[11];
+	char tech_column[3];
+	char auth_column[2];
+
+	sprintf(sn_str, "%010lu", (long) sn);
+	sprintf(tech_str, "%02u", tech);
+
+	fseek(fh, 0, SEEK_SET);
+
+	int found = 0;
+	while((read = getline(&line, &n, fh) != -1)) {
+		strncpy(sn_column, line, 10);
+		strncpy(tech_column, &line[10], 2);
+		strncpy(auth_column, &line[12], 1);
+
+		sn_column[10] = '\0';
+		tech_column[2] = '\0';
+		auth_column[1] = '\0';
+
+		if (!strcmp(sn_str, sn_column)) {
+			found = 1;
+			if (!strcmp(tech_str, tech_column)) {
+				int auth = atoi(auth_column);
+				if (auth) {
+					printf(
+							"[DB AUTHORIZED]: <%s> <%s> <%s>\n",
+							sn_str,
+							tech_str,
+							auth_column
+						);
+					free(line);
+					return DB_AUTHORIZED;
+				} else {
+					printf(
+							"[DB NOT AUTHORIZED]: <%s> <%s> <%s>\n",
+							sn_str,
+							tech_str,
+							auth_column
+						);
+					free(line);
+					return DB_NOT_AUTHORIZED;
+				}
+			}
+		}
+	};
+
+	free(line);
+
+	if (found) {
+		printf("[DB NOT AUTHORIZED]: <%s> <%s>\n", sn_str, tech_str);
+		return DB_NOT_AUTHORIZED;
+	}
+
+	printf("[DB NOT FOUND]: <%s>\n", sn_str);
+	return DB_NOT_FOUND;
+}
+
 int ptob(packet const *p, uint8_t *buf) {
 	memset(buf, 0xff, 2);
 	buf[2] = p->client_id;
@@ -53,9 +124,6 @@ int ptob(packet const *p, uint8_t *buf) {
  * Contains utility functions for implementing the protcol.
 =============================================================================*/
 
-//int ptob(packet *p, uint8_t* const buf) {
-//}
-
 /*============================================================================
  * void ptos(...):
  * ---------------
@@ -65,10 +133,10 @@ int ptob(packet const *p, uint8_t *buf) {
  * -----
  * void *p: a pointer to a packet
  * packet_t pt: a packet type value
- * parser_return_t rt: a parser return type value
+ * return_t rt: a parser return type value
  * char *s: An allocated string in which the text data will be populated
 =============================================================================*/
-void ptos(packet *p, parser_return_t rt, char *str) {
+void ptos(packet *p, return_t rt, char *str) {
 	char *resolution_str = "";
 	if (rt == ERR_OPEN_DELIMITER) {
 		resolution_str = "PARSER ERROR: ERR_OPEN_DELIMITER\n";
@@ -179,7 +247,7 @@ void ptos(packet *p, parser_return_t rt, char *str) {
  * args:
  * -----
  * packet const *cp: a pointer to the client packet
- * parser_return_t prt: the parser return type for the client packet
+ * return_t prt: the parser return type for the client packet
  * packet* const rp: a pointer to the response packet which will be populated
  *   with data
  * uint8_t* const client_table: a table of expected segment numbers for clients
@@ -187,7 +255,7 @@ void ptos(packet *p, parser_return_t rt, char *str) {
 =============================================================================*/
 void resolve_response_packet(
 		packet const *req_p,
-		parser_return_t const req_prt,
+		return_t const req_prt,
 		packet* const res_p,
 		uint8_t* const client_table,
 		FILE* const verification_db) {
@@ -266,7 +334,7 @@ void resolve_response_packet(
 
 }
 
-parser_return_t parse_packet_buf(
+return_t parse_packet_buf(
 		uint8_t const *buf,
 		int const n,
 		void* const p) {
@@ -278,30 +346,33 @@ parser_return_t parse_packet_buf(
 	uint8_t *payload = 0;
 	uint16_t reject_id = 0;
 
+	int len_mismatch = 0;
+
 	uint16_t hostshort;
 
+	uint8_t packet_buf[n];
+	memcpy(&packet_buf, buf, n);
+
 	// check the opening delimiter
-	memcpy(&hostshort, buf, 2);
+	memcpy(&hostshort, packet_buf, 2);
 	if (ntohs(hostshort) != DELIMITER) {
 		return ERR_OPEN_DELIMITER;
 	}
 
 	// copy the client id
-	memcpy(&client_id, &buf[2], 1);
+	memcpy(&client_id, &packet_buf[2], 1);
 
 	// copy the type
-	memcpy(&hostshort, &buf[3], 2);
+	memcpy(&hostshort, &packet_buf[3], 2);
 	type = ntohs(hostshort);
 
 	// check the type, populate as necessary
-	int close_addr;
 	if (type == ACK) {
 		ack_packet *ap = (ack_packet*) p;
 
 		// copy segment id
-		memcpy(&segment_id, &buf[5], 1);
+		memcpy(&segment_id, &packet_buf[5], 1);
 		// set close addr to check closing delimiter
-		close_addr = 6;
 
 		ap->client_id = client_id;
 		ap->type = type;
@@ -311,12 +382,11 @@ parser_return_t parse_packet_buf(
 		reject_packet *rp = (reject_packet*) p;
 
 		// copy reject id
-		memcpy(&hostshort, &buf[5], 2);
+		memcpy(&hostshort, &packet_buf[5], 2);
 		reject_id = ntohs(hostshort);
 		// copy segment id
-		memcpy(&segment_id, &buf[7], 1);
+		memcpy(&segment_id, &packet_buf[7], 1);
 		// set close addr to check closing delimiter
-		close_addr = 8;
 
 		rp->client_id = client_id;
 		rp->type = type;
@@ -326,16 +396,15 @@ parser_return_t parse_packet_buf(
 		data_packet *dp = (data_packet*) p;
 
 		// copy segment id
-		memcpy(&segment_id, &buf[5], 1);
+		memcpy(&segment_id, &packet_buf[5], 1);
 		// copy the length
-		memcpy(&len, &buf[6], 1);
+		memcpy(&len, &packet_buf[6], 1);
 		// copy the payload
-		payload = malloc(sizeof(uint8_t) * len);
-		memcpy(payload, &buf[7], len);
+		payload = malloc(sizeof(uint8_t) * len); // memleak
+		memcpy(payload, &packet_buf[7], len);
 		// null terminate the payload so we can print it as a string easily
 		payload[len] = 0x0;
 		// set close addr to check closing delimiter
-		close_addr = 7 + len;
 
 		dp->client_id = client_id;
 		dp->type = type;
@@ -343,10 +412,8 @@ parser_return_t parse_packet_buf(
 		dp->len = len;
 		dp->payload = payload;
 
-		// scan payload for end delimiter
-		char *delimiter_ptr = strstr((char*)payload, DELIMITER_STR);
-		if (delimiter_ptr) {
-			return ERR_LEN_MISMATCH;
+		if (len + 9 != n) {
+			len_mismatch = 1;
 		}
 	} else {
 		// invalid format
@@ -354,105 +421,15 @@ parser_return_t parse_packet_buf(
 	}
 
 	// check the closing delimiter
-	memcpy(&hostshort, &buf[close_addr], 2);
 
+	memcpy(&hostshort, &packet_buf[n - 2], 2);
 	if (ntohs(hostshort) != DELIMITER) {
 		return ERR_CLOSE_DELIMITER;
 	}
 
+	if (len_mismatch) {
+		return ERR_LEN_MISMATCH;
+	}
+
 	return SUCCESS;
 }
-
-// void ct_init(client_table* const ct) {
-// 	memset(ct->ptrs, 0, sizeof(ct->ptrs));
-// 	memset(ct->buf, 0, sizeof(ct->buf));
-// }
-// 
-// int ct_exists(client_table const *ct, uint8_t id) {
-// 	return ct->ptrs[id] == NULL;
-// }
-// 
-// void ct_create(client_table* const ct, uint8_t id) {
-// 	// buf is memset to 0, and client's ze
-// 	ct->ptrs[id] = &ct->buf[id];
-// }
-// 
-// void ct_increment(client_table* const ct, uint8_t id) {
-// 	(ct->buf[id]).segment_no += 1;
-// }
-// 
-// void ct_delete(client_table* const ct, uint8_t id) {
-// 	ct->ptrs[id] = NULL;
-// 	memset(&ct->buf[id], 0, sizeof(client));
-// }
-// 
-// int ct_expected_segment_no(client_table* const ct, uint8_t id) {
-// 	if (!ct_exists(ct, id)) {
-// 		ct_create(ct, id);
-// 	}
-// 
-// 	return ct->buf[id].segment_no;
-// }
-
-//packet_list *create_packet_list() {
-//	packet_list *pl = malloc(sizeof(packet_list));
-//	packet_list_node *buf = malloc(
-//			sizeof(packet_list_node)*PACKET_LIST_INITIAL_SIZE
-//	);
-//
-//	pl->head = NULL;
-//	pl->tail = NULL;
-//	pl->buf = buf;
-//	pl->size = PACKET_LIST_INITIAL_SIZE;
-//
-//	return pl;
-//}
-//
-//void free_packet(packet *p) {
-//	free(p->payload);
-//}
-//
-//void free_packet_list(packet_list *pl) {
-//	if (pl->head) {
-//		size_t increment = sizeof(packet_list_node);
-//		packet_list_node *cursor = pl->buf;
-//		do {
-//			free_packet(cursor->p);
-//			cursor += increment;
-//		} while(cursor <= pl->tail);
-//	}
-//	free(pl->buf);
-//	free(pl);
-//}
-//
-//void append(packet_list *pl, packet *p) {
-//	size_t packet_size = sizeof(packet);
-//	size_t packet_list_node_size = sizeof(packet_list_node);
-//
-//	// initial list
-//	if (pl->tail == NULL) {
-//		pl->head = pl->buf;
-//		pl->tail = pl->buf;
-//	}
-//
-//	// number of elements in the list
-//	size_t num = ((pl->head - pl->tail) / packet_size) + 1;
-//
-//	// our buffer is full, resize
-//	if (num >= pl->size) {
-//		packet_list_node *buf = malloc(
-//				packet_list_node_size * PACKET_LIST_FACTOR * pl->size
-//		);
-//
-//		memcpy(buf, pl->buf, packet_list_node_size * pl->size);
-//
-//		free(pl->buf);
-//
-//		pl->buf = buf;
-//		pl->head = buf;
-//		pl->tail = buf + packet_list_node_size * pl->size;
-//	}
-//
-//		//memcpy(pl->buf, p, packet_size);
-//	//memcpy(tail, 
-//}

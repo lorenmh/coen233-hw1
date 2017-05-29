@@ -7,12 +7,15 @@
 
 #include "protocol.h"
 
+#define DB_FNAME "Verification_Database.txt"
+
 // function prototypes
 int parse_packet_buf(uint8_t*,int,packet*);
-int ptos(packet*,parser_return_t,char*);
-int resolve_response_packet(packet*,parser_return_t,packet*,uint8_t*,FILE*);
+int ptos(packet*,return_t,char*);
+int resolve_response_packet(packet*,return_t,packet*,uint8_t*,FILE*);
 int ptob(packet*,uint8_t*);
 void hexp(uint8_t*,int);
+int query(FILE*,uint8_t*);
 
 int main(int argc, char *argv[]) {
 	// remove buffering from stdout
@@ -31,6 +34,11 @@ int main(int argc, char *argv[]) {
 
 	if (socket_fd < 0) {
 		fprintf(stderr, "Could not create socket, fd=%d\n", socket_fd);
+	}
+
+	FILE *db = fopen(DB_FNAME, "r");
+	if (db == NULL) {
+		fprintf(stderr, "Could not open file '%s'\n", DB_FNAME);
 	}
 
 	struct addrinfo hints;

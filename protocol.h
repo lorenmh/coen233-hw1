@@ -9,6 +9,13 @@
 #define DELIMITER_STR "\xff\xff"
 #define CLIENT_TABLE_SIZE 0xff
 #define MAX_PACKET_SIZE 260
+#define ACK_TIMER 3
+#define MAX_CLIENT_RETRY 3
+
+typedef struct demo_packet {
+	int size;
+	uint8_t buf[128];
+} demo_packet;
 
 typedef enum packet_t {
 	DATA = 0xfff1,
@@ -34,13 +41,16 @@ typedef enum reject_t {
 	DUP_PACKET = 0xfff7
 } reject_t;
 
-typedef enum parser_return_t {
+typedef enum return_t {
 	SUCCESS = 0,
 	ERR_OPEN_DELIMITER,
 	ERR_CLOSE_DELIMITER,
 	ERR_LEN_MISMATCH,
-	ERR_INVALID_FMT
-} parser_return_t;
+	ERR_INVALID_FMT,
+	DB_AUTHORIZED,
+	DB_NOT_FOUND,
+	DB_NOT_AUTHORIZED
+} return_t;
 
 // packet is the generic packet type
 // it has the size of the largest packet (so no segfaults occur)

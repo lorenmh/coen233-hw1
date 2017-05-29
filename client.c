@@ -10,28 +10,34 @@
 
 // function prototypes
 int parse_packet_buf(uint8_t*,int,packet*);
-int ptos(packet*,parser_return_t,char*);
-int resolve_response_packet(packet*,parser_return_t,packet*,uint8_t*,FILE*);
+int ptos(packet*,return_t,char*);
+int resolve_response_packet(packet*,return_t,packet*,uint8_t*,FILE*);
 void hexp(uint8_t*,int);
 
-uint8_t demo1_len = 5;
-uint8_t demo1_width = 11;
-uint8_t demo1[] = {
-	0xff, 0xff, 0x00, 0xff, 0xf1, 0x00, 0x02, 0x48, 0x69, 0xff, 0xff,
-	0xff, 0xff, 0x00, 0xff, 0xf1, 0x01, 0x02, 0x48, 0x69, 0xff, 0xff,
-	0xff, 0xff, 0x00, 0xff, 0xf1, 0x02, 0x02, 0x48, 0x69, 0xff, 0xff,
-	0xff, 0xff, 0x00, 0xff, 0xf1, 0x03, 0x02, 0x48, 0x69, 0xff, 0xff,
-	0xff, 0xff, 0x00, 0xff, 0xf1, 0x04, 0x02, 0x48, 0x69, 0xff, 0xff
-};
+//uint8_t demo1_packet_size = 11;
+//uint8_t demo1[] = {
+//	0xff, 0xff, 0x00, 0xff, 0xf1, 0x00, 0x02, 0x48, 0x69, 0xff, 0xff,
+//	0xff, 0xff, 0x00, 0xff, 0xf1, 0x01, 0x02, 0x48, 0x69, 0xff, 0xff,
+//	0xff, 0xff, 0x00, 0xff, 0xf1, 0x02, 0x02, 0x48, 0x69, 0xff, 0xff,
+//	0xff, 0xff, 0x00, 0xff, 0xf1, 0x03, 0x02, 0x48, 0x69, 0xff, 0xff,
+//	0xff, 0xff, 0x00, 0xff, 0xf1, 0x04, 0x02, 0x48, 0x69, 0xff, 0xff
+//};
+//
+//uint8_t demo2_packet_size = 11;
+//uint8_t demo2[] = {
+//	0xff, 0xff, 0x00, 0xff, 0xf1, 0x00, 0x02, 0x48, 0x69, 0xff, 0xff,
+//	0xff, 0xff, 0x00, 0xff, 0xf1, 0x02, 0x02, 0x48, 0x69, 0xff, 0xff,
+//	0xff, 0xff, 0x00, 0xff, 0xf1, 0x01, 0x01, 0x48, 0x00, 0xff, 0xff,
+//	0xff, 0xff, 0x00, 0xff, 0xf1, 0x03, 0x02, 0x48, 0x69, 0xff, 0xff,
+//	0xff, 0xff, 0x00, 0xff, 0xf1, 0x04, 0x02, 0x48, 0x69, 0xff, 0xff
+//};
 
-uint8_t demo2_len = 5;
-uint8_t demo2_width = 11;
-uint8_t demo2[] = {
-	0xff, 0xff, 0x00, 0xff, 0xf1, 0x00, 0x02, 0x48, 0x69, 0xff, 0xff,
-	0xff, 0xff, 0x00, 0xff, 0xf1, 0x01, 0x02, 0x48, 0x69, 0xff, 0xff,
-	0xff, 0xff, 0x00, 0xff, 0xf1, 0x02, 0x02, 0x48, 0x69, 0xff, 0xff,
-	0xff, 0xff, 0x00, 0xff, 0xf1, 0x03, 0x02, 0x48, 0x69, 0xff, 0xff,
-	0xff, 0xff, 0x00, 0xff, 0xf1, 0x04, 0x02, 0x48, 0x69, 0xff, 0xff
+demo_packet demo1[] = {
+	{.size=11, .buf={0xff,0xff,0x00,0xff,0xf1,0x00,0x02,0x48,0x69,0xff,0xff}},
+	{.size=11, .buf={0xff,0xff,0x00,0xff,0xf1,0x01,0x02,0x48,0x69,0xff,0xff}},
+	{.size=11, .buf={0xff,0xff,0x00,0xff,0xf1,0x02,0x02,0x48,0x69,0xff,0xff}},
+	{.size=11, .buf={0xff,0xff,0x00,0xff,0xf1,0x03,0x02,0x48,0x69,0xff,0xff}},
+	{.size=11, .buf={0xff,0xff,0x00,0xff,0xf1,0x04,0x02,0x48,0x69,0xff,0xff}}
 };
 
 int main(int argc, char *argv[]) {
@@ -124,64 +130,112 @@ int main(int argc, char *argv[]) {
 	packet res_p;
 	uint8_t buf[1024];
 
-	uint8_t demo_len = demo1_len;
-	uint8_t demo_width = demo1_width;
-	uint8_t *demo = demo1;
+	//uint8_t *demo = demo1;
+	//uint8_t demo_packet_size = demo1_packet_size;
+	//uint8_t demo_len = sizeof(demo1) / demo_packet_size;
 
-	int len = sizeof(demo) / sizeof(demo[0]);
+	demo_packet *demo = demo1;
+	int demo_len = sizeof(demo1) / sizeof(demo1[0]);
+
+	struct timeval ack_timer;
+	ack_timer.tv_sec = ACK_TIMER;
+
+	err = setsockopt(
+			socket_fd,
+			SOL_SOCKET,
+			SO_RCVTIMEO,
+			&ack_timer,
+			sizeof(ack_timer)
+	);
+
+	if (err < 0) {
+		fprintf(stderr, "Error setting socket option for timeout\n");
+	}
 
 	for(int i = 0; i < demo_len; i++) {
-		sendto(
-			socket_fd,
-			&demo[i * demo_width],
-			demo_width,
-			0,
-			(struct sockaddr*) &server_addr,
-			sizeof(server_addr)
-		);
-
-		char str[1024];
-
-		printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-		printf(
-			"[SENT] address: %s, port: %d\n",
-			inet_ntoa(server_addr.sin_addr),
-			ntohs(server_addr.sin_port)
-		);
-
-		hexp(&demo[i * demo_width], demo_width);
-
-		err = parse_packet_buf(&demo[i*demo_width], demo_width, &req_p);
-		ptos(&req_p, err, str);
-		printf("%s", str);
-
-		memset(buf, 0, sizeof(buf));
+		demo_packet dp = demo[i];
 
 
-		socklen_t len = sizeof(client_addr);
-		struct sockaddr_in response_addr;
+		int retry_counter = 0;
+		int received_response = 0;
 
-		int n = recvfrom(
-			socket_fd,
-			buf,
-			1024,
-			0,//MSG_WAITALL,
-			(struct sockaddr*)&response_addr,
-			&len
-		);
+		while(retry_counter < MAX_CLIENT_RETRY && !received_response) {
+			sendto(
+				socket_fd,
+				dp.buf,
+				dp.size,
+				0,
+				(struct sockaddr*) &server_addr,
+				sizeof(server_addr)
+			);
 
-		printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-		printf(
-			"[RECEIVED] address: %s, port: %d\n",
-			inet_ntoa(response_addr.sin_addr),
-			ntohs(response_addr.sin_port)
-		);
+			char str[1024];
 
-		hexp(buf, n);
+			printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+			printf(
+				"[SENT] address: %s, port: %d\n",
+				inet_ntoa(server_addr.sin_addr),
+				ntohs(server_addr.sin_port)
+			);
 
-		err = parse_packet_buf(buf, n, &res_p);
+			hexp(dp.buf, dp.size);
 
-		ptos(&res_p, err, str);
-		printf("%s", str);
+			err = parse_packet_buf(
+					dp.buf,
+					dp.size,
+					&req_p
+			);
+
+			ptos(&req_p, err, str);
+			printf("%s", str);
+
+			memset(buf, 0, sizeof(buf));
+
+			socklen_t len = sizeof(client_addr);
+			struct sockaddr_in response_addr;
+
+			int n = recvfrom(
+				socket_fd,
+				buf,
+				1024,
+				0,
+				(struct sockaddr*)&response_addr,
+				&len
+			);
+
+			if (errno == EAGAIN) {
+				retry_counter += 1;
+
+				if (retry_counter < MAX_CLIENT_RETRY) {
+					printf(
+							"Did not receive ACK after %d seconds, retrying...\n",
+							ACK_TIMER
+					);
+				}
+
+				continue;
+			}
+			
+			received_response = 1;
+
+			printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+			printf(
+				"[RECEIVED] address: %s, port: %d\n",
+				inet_ntoa(response_addr.sin_addr),
+				ntohs(response_addr.sin_port)
+			);
+
+			hexp(buf, n);
+
+			err = parse_packet_buf(buf, n, &res_p);
+
+			ptos(&res_p, err, str);
+			printf("%s", str);
+		}
+
+		if (!received_response) {
+			printf("Server does not respond\n");
+			break;
+		}
 	}
 }
