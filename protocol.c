@@ -3,6 +3,47 @@
 #include <stdlib.h>
 #include "protocol.h"
 
+int ptob(packet *p, uint8_t *buf) {
+	memset(buf, 0xff, 2);
+	buf[2] = p->client_id;
+	uint16_t netshort = htons(p->type);
+	memcpy(&buf[3], &netshort, 2);
+
+	if (p->type == REJECT) {
+		reject_packet *rp = (reject_packet*) p;
+
+		netshort = htons(rp->reject_id);
+		memcpy(&buf[5], &netshort, 2);
+
+		buf[7] = rp->segment_id;
+
+		memset(&buf[8], 0xff, 2);
+
+		return 10;
+	}
+
+	if (p->type == ACK) {
+		ack_packet *ap = (ack_packet*) ap;
+
+		buf[5] = ap->segment_id;
+
+		memset(&buf[6], 0xff, 2);
+
+		for (int i = 0; i < 8; i++) {
+			printf("\\x%02x", buf[i]);
+		}
+		printf("\n");
+		return 8;
+	}
+
+	data_packet *dp = (data_packet*) p;
+	buf[5] = dp->segment_id;
+	buf[6] = dp->len;
+	memcpy(&buf[7], dp->payload, dp->len);
+	memset(&buf[dp->len + 7], 0xff, 2);
+	return dp->len + 9;
+}
+
 /*============================================================================
  * protocol.c:
  * -----------
@@ -233,11 +274,11 @@ parser_return_t parse_packet_buf(
 	uint8_t *payload = 0;
 	uint16_t reject_id = 0;
 
-	uint16_t netshort;
+	uint16_t hostshort;
 
 	// check the opening delimiter
-	memcpy(&netshort, buf, 2);
-	if (ntohs(netshort) != DELIMITER) {
+	memcpy(&hostshort, buf, 2);
+	if (ntohs(hostshort) != DELIMITER) {
 		return ERR_OPEN_DELIMITER;
 	}
 
@@ -245,8 +286,8 @@ parser_return_t parse_packet_buf(
 	memcpy(&client_id, &buf[2], 1);
 
 	// copy the type
-	memcpy(&netshort, &buf[3], 2);
-	type = ntohs(netshort);
+	memcpy(&hostshort, &buf[3], 2);
+	type = ntohs(hostshort);
 
 	// check the type, populate as necessary
 	int close_addr;
@@ -266,8 +307,8 @@ parser_return_t parse_packet_buf(
 		reject_packet *rp = (reject_packet*) p;
 
 		// copy reject id
-		memcpy(&netshort, &buf[5], 2);
-		reject_id = ntohs(netshort);
+		memcpy(&hostshort, &buf[5], 2);
+		reject_id = ntohs(hostshort);
 		// copy segment id
 		memcpy(&segment_id, &buf[7], 1);
 		// set close addr to check closing delimiter
@@ -309,9 +350,9 @@ parser_return_t parse_packet_buf(
 	}
 
 	// check the closing delimiter
-	memcpy(&netshort, &buf[close_addr], 2);
+	memcpy(&hostshort, &buf[close_addr], 2);
 
-	if (ntohs(netshort) != DELIMITER) {
+	if (ntohs(hostshort) != DELIMITER) {
 		return ERR_CLOSE_DELIMITER;
 	}
 

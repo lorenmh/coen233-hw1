@@ -138,5 +138,39 @@ int main(int argc, char *argv[]) {
 			(struct sockaddr*) &server_addr,
 			sizeof(server_addr)
 		);
+
+		uint8_t buf[1024];
+		memset(buf, 0, sizeof(buf));
+
+
+		socklen_t len = sizeof(client_addr);
+		struct sockaddr_in response_addr;
+
+		int n = recvfrom(
+			socket_fd,
+			buf,
+			1024,
+			0,//MSG_WAITALL,
+			(struct sockaddr*)&response_addr,
+			&len
+		);
+
+		printf("----------------------------------------\n");
+		printf(
+			"[RECEIVED] address: %s, port: %d\n",
+			inet_ntoa(response_addr.sin_addr),
+			ntohs(response_addr.sin_port)
+		);
+
+		for (int i = 0; i < n; i++) {
+			printf("\\x%x", buf[i]);
+		}
+		printf("\n");
+
+		err = parse_packet_buf(udp_buf, &res_p);
+		char str[1024];
+
+		ptos(&res_p, err, str);
+		printf("%s\n", str);
 	}
 }

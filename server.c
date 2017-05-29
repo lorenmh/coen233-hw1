@@ -11,6 +11,7 @@
 int parse_packet_buf(uint8_t*,packet*);
 int ptos(packet*,parser_return_t,char*);
 int resolve_response_packet(packet*,parser_return_t,packet*,uint8_t*,FILE*);
+int ptob(packet*,uint8_t*);
 
 int main(int argc, char *argv[]) {
 	// remove buffering from stdout
@@ -127,6 +128,17 @@ int main(int argc, char *argv[]) {
 
 		ptos(&res_p, SUCCESS, str);
 		printf("[SENDING]%s", str);
+
+		n = ptob(&res_p, udp_buf);
+
+		sendto(
+			socket_fd,
+			udp_buf,
+			n,
+			0,
+			(struct sockaddr*) &client_addr,
+			sizeof(client_addr)
+		);
 
 
 	}
