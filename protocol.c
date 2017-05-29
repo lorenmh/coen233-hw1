@@ -25,7 +25,6 @@
  * char *s: An allocated string in which the text data will be populated
 =============================================================================*/
 void ptos(packet *p, parser_return_t rt, char *str) {
-	printf("1");
 	char *resolution_str = "";
 	if (rt == ERR_OPEN_DELIMITER) {
 		resolution_str = "PARSER ERROR: ERR_OPEN_DELIMITER\n";
@@ -37,13 +36,10 @@ void ptos(packet *p, parser_return_t rt, char *str) {
 		resolution_str = "PARSER ERROR: ERR_INVALID_FMT\n";
 	} 
 
-	printf("2");
 	packet_t pt = p->type;
-	printf(" 0x%04x", pt);
 
 	if (pt == DATA || pt == ACC_PER || pt == NOT_PAID ||
 			pt == NOT_EXIST || pt == ACCESS_OK) {
-		printf("3");
 		data_packet *dp = (data_packet*) p;
 
 		char *type_s = "DATA";

@@ -110,7 +110,6 @@ int main(int argc, char *argv[]) {
 			ntohs(client_addr.sin_port)
 		);
 
-		printf("\n");
 		for (int i = 0; i < n; i++) {
 			printf("\\x%02x", udp_buf[i]);
 		}
@@ -120,15 +119,14 @@ int main(int argc, char *argv[]) {
 
 		resolve_response_packet(&req_p, err, &res_p, client_table, NULL);
 
-		char req_str[1024];
-		char res_str[1024];
+		char str[1024];
+		//char res_str[1024];
 
-		printf("dafuck?\n");
-		ptos(&req_p, err, req_str);
-		printf("%s", req_str);
+		ptos(&req_p, err, str);
+		printf("%s\n", str);
 
-		//ptos(&res_p, SUCCESS, res_str);
-		//printf("%s", res_str);
+		ptos(&res_p, SUCCESS, str);
+		printf("[SENDING]%s", str);
 
 
 	}

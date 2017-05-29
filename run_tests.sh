@@ -38,8 +38,6 @@ test_data_3=$(data_packet 0 2 'Hello')
 test_data_4=$(data_packet 0 2 'Hello')
 test_data_5=$(data_packet 0 2 'Hello')
 
-echo $test_data_1
-
 
 #echo -n -e "$test_data_1" | nc -u 127.0.0.1 8000 &
 #disown

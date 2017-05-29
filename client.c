@@ -13,6 +13,14 @@ int parse_packet_buf(char*,packet*);
 int ptos(packet*,parser_return_t,char*);
 int resolve_response_packet(packet*,parser_return_t,packet*,uint8_t*,FILE*);
 
+uint8_t p0[] = {
+	0xff, 0xff, 0x00, 0xff, 0xf1, 0x00, 0x02, 0x48, 0x65, 0xff, 0xff
+};
+
+uint8_t p1[] = {
+	0xff, 0xff, 0x00, 0xff, 0xf1, 0x01, 0x02, 0x48, 0x65, 0xff, 0xff
+};
+
 int main(int argc, char *argv[]) {
 	// remove buffering from stdout
 	setbuf(stdout, NULL);
@@ -113,27 +121,22 @@ int main(int argc, char *argv[]) {
 	packet req_p;
 	packet res_p;
 
-	for(int i = 0; i < num_packets; i++) {
-		char *packet_buf = argv[i + 3];
-
-		int len = sizeof(packet_buf) / sizeof(packet_buf[0]);
-		uint8_t buf[len];
-
-		printf("\n");
-		for (int i = 0; i < len; i++) {
-			buf[i] = (uint8_t) packet_buf[i];
-			printf("\\x%02x", packet_buf[i]);
-		}
-		printf("\n");
-
-		//char *packet_buf = "\xff\xff\x00\xff\xf1\x00\x05Hello\xff\xff";
+	//for(int i = 0; i < num_packets; i++) {
 		sendto(
 			socket_fd,
-			buf,
-			sizeof(buf),
+			p0,
+			sizeof(p0),
 			0,
 			(struct sockaddr*) &server_addr,
 			sizeof(server_addr)
 		);
-	}
+		sendto(
+			socket_fd,
+			p1,
+			sizeof(p1),
+			0,
+			(struct sockaddr*) &server_addr,
+			sizeof(server_addr)
+		);
+	//}
 }
