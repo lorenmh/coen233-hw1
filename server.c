@@ -8,10 +8,11 @@
 #include "protocol.h"
 
 // function prototypes
-int parse_packet_buf(uint8_t*,packet*);
+int parse_packet_buf(uint8_t*,int,packet*);
 int ptos(packet*,parser_return_t,char*);
 int resolve_response_packet(packet*,parser_return_t,packet*,uint8_t*,FILE*);
 int ptob(packet*,uint8_t*);
+void hexp(uint8_t*,int);
 
 int main(int argc, char *argv[]) {
 	// remove buffering from stdout
@@ -104,19 +105,16 @@ int main(int argc, char *argv[]) {
 			&len
 		);
 
-		printf("----------------------------------------\n");
+		printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
 		printf(
 			"[RECEIVED] address: %s, port: %d\n",
 			inet_ntoa(client_addr.sin_addr),
 			ntohs(client_addr.sin_port)
 		);
 
-		for (int i = 0; i < n; i++) {
-			printf("\\x%02x", udp_buf[i]);
-		}
-		printf("\n");
+		hexp(udp_buf, n);
 
-		err = parse_packet_buf(udp_buf, &req_p);
+		err = parse_packet_buf(udp_buf, n, &req_p);
 
 		resolve_response_packet(&req_p, err, &res_p, client_table, NULL);
 
@@ -124,10 +122,7 @@ int main(int argc, char *argv[]) {
 		//char res_str[1024];
 
 		ptos(&req_p, err, str);
-		printf("%s\n", str);
-
-		ptos(&res_p, SUCCESS, str);
-		printf("[SENDING]%s", str);
+		printf("%s", str);
 
 		n = ptob(&res_p, udp_buf);
 
@@ -140,6 +135,16 @@ int main(int argc, char *argv[]) {
 			sizeof(client_addr)
 		);
 
+		printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+		printf(
+			"[SENT] address: %s, port: %d\n",
+			inet_ntoa(client_addr.sin_addr),
+			ntohs(client_addr.sin_port)
+		);
 
+		hexp(udp_buf, n);
+
+		ptos(&res_p, SUCCESS, str);
+		printf("%s", str);
 	}
 }

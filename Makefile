@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-c
+CFLAGS=-c -std=c99
 ODIR=bin
 CMD=$(CC) $(CFLAGS)
 

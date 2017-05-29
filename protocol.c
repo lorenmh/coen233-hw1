@@ -3,7 +3,14 @@
 #include <stdlib.h>
 #include "protocol.h"
 
-int ptob(packet *p, uint8_t *buf) {
+void hexp(uint8_t *buf, int n) {
+	for (int i = 0; i < n; i++) {
+		printf("\\x%02x", buf[i]);
+	}
+	printf("\n");
+}
+
+int ptob(packet const *p, uint8_t *buf) {
 	memset(buf, 0xff, 2);
 	buf[2] = p->client_id;
 	uint16_t netshort = htons(p->type);
@@ -23,16 +30,12 @@ int ptob(packet *p, uint8_t *buf) {
 	}
 
 	if (p->type == ACK) {
-		ack_packet *ap = (ack_packet*) ap;
+		ack_packet *ap = (ack_packet*) p;
 
 		buf[5] = ap->segment_id;
 
 		memset(&buf[6], 0xff, 2);
 
-		for (int i = 0; i < 8; i++) {
-			printf("\\x%02x", buf[i]);
-		}
-		printf("\n");
 		return 8;
 	}
 
@@ -265,6 +268,7 @@ void resolve_response_packet(
 
 parser_return_t parse_packet_buf(
 		uint8_t const *buf,
+		int const n,
 		void* const p) {
 
 	uint8_t client_id;
