@@ -7,72 +7,116 @@
 
 #include "protocol.h"
 
+// function prototypes
+int parse_packet_buf(char*,packet*);
+int ptos(packet*,parser_return_t,char*);
+int resolve_response_packet(packet*,parser_return_t,packet*,uint8_t*,FILE*);
+
 int main(int argc, char *argv[]) {
-  if (argc != 4) {
-    fprintf(stderr, "Error: Missing required arg, needs <server-hostname> ");
-    fprintf(stderr, "<server-port> <client-hostname> <client-port>\n");
-    return 1;
-  }
+	// remove buffering from stdout
+	setbuf(stdout, NULL);
 
-  char const *server_hostname = argv[0];
-  char const *server_port = argv[1];
-  char const *client_hostname = argv[2];
-  char const *client_port = argv[3];
+	if (argc != 3) {
+		fprintf(stderr, "Error: Missing required arg, needs <server-hostname> ");
+		fprintf(stderr, "<server-port> <client-hostname> <client-port>\n");
+		return 1;
+	}
 
-  int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+	char const *server_hostname = argv[1];
+	char const *server_port = argv[2];
 
-  if (socket_fd < 0) {
-    fprintf(stderr, "Could not create socket, fd=%d\n", socket_fd);
-  }
+	int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
-  struct addrinfo hints;
-  struct addrinfo *results;
-  struct addrinfo *result;
+	if (socket_fd < 0) {
+		fprintf(stderr, "Could not create socket, fd=%d\n", socket_fd);
+	}
 
-  // clear out hints
-  memset(&hints, 0, sizeof(hints));
+	struct addrinfo hints;
+	struct addrinfo *results;
+	struct addrinfo *result;
 
-  // set hints fields for getaddrinfo
-  hints.ai_protocol = 0;
-  hints.ai_flags = AI_ADDRCONFIG;
-  hints.ai_family = AF_UNSPEC;
-  hints.ai_socktype = SOCK_DGRAM;
+	// clear out hints
+	memset(&hints, 0, sizeof(hints));
 
-  int err = getaddrinfo(server_hostname, server_port, &hints, &results);
+	// set hints fields for getaddrinfo
+	hints.ai_protocol = 0;
+	hints.ai_flags = AI_ADDRCONFIG;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_DGRAM;
 
-  if (err) {
-    fprintf(stderr, "Error invoking getaddrinfo: %s\n", strerror(errno));
-  }
+	int err = getaddrinfo(server_hostname, server_port, &hints, &results);
 
-  struct sockaddr_in *addr = NULL;
+	if (err) {
+		fprintf(stderr, "Error invoking getaddrinfo: %s\n", strerror(errno));
+	}
 
-  for (result = results; result != NULL; result = result->ai_next) {
-    err = bind(socket_fd, result->ai_addr, result->ai_addrlen);
+	int bind_success = 0;
+	struct sockaddr_in addr;
+	struct sockaddr_in client_addr;
+	memset(&addr, 0, sizeof(addr));
+	memset(&client_addr, 0, sizeof(client_addr));
 
-    if (err) {
-      // fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
-    } else {
-      addr = (struct sockaddr_in *)result->ai_addr;
-      printf("Bind successful, address: %s\n", inet_ntoa(addr->sin_addr));
-      break;
-    }
-  }
+	for (result = results; result != NULL; result = result->ai_next) {
+		err = bind(socket_fd, result->ai_addr, result->ai_addrlen);
 
-  if (!addr) {
-    fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
-  }
+		if (err) {
+			// fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
+		} else {
+			memcpy(&addr, result->ai_addr, sizeof(*(result->ai_addr)));
+			printf(
+				"Bind successful, address: %s, port: %d\n",
+				inet_ntoa(addr.sin_addr),
+				ntohs(addr.sin_port)
+			);
+			bind_success = 1;
+			break;
+		}
+	}
 
-  char buf[1024];
-  socklen_t len = sizeof(addr);
+	if (!bind_success) {
+		fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
+	}
 
-  int n = recvfrom(
-    socket_fd,
-    buf,
-    1024,
-    0,
-    (struct sockaddr *)addr,
-    &len
-  );
+	char udp_buf[1024];
 
-  printf("RECEIVED: %s\n", buf);
+	uint8_t client_table[CLIENT_TABLE_SIZE];
+	memset(client_table, 0, sizeof(client_table));
+
+	socklen_t len = sizeof(client_addr);
+
+	packet req_p;
+	packet res_p;
+
+	for(;;) {
+		memset(udp_buf, 0, sizeof(udp_buf));
+
+		int n = recvfrom(
+			socket_fd,
+			udp_buf,
+			1024,
+			0,//MSG_WAITALL,
+			(struct sockaddr*)&client_addr,
+			&len
+		);
+
+		printf("----------------------------------------\n");
+		printf(
+			"[RECEIVED] address: %s, port: %d\n",
+			inet_ntoa(client_addr.sin_addr),
+			ntohs(client_addr.sin_port)
+		);
+
+		err = parse_packet_buf(udp_buf, &req_p);
+		resolve_response_packet(&req_p, err, &res_p, client_table, NULL);
+
+		char str[1024];
+
+		ptos(&req_p, err, str);
+		printf("%s", str);
+
+		ptos(&res_p, SUCCESS, str);
+		printf("%s", str);
+
+
+	}
 }

@@ -21,21 +21,17 @@
  * parser_return_t rt: a parser return type value
  * char *s: An allocated string in which the text data will be populated
 =============================================================================*/
-void ptos(packet *p, parser_return_t rt, char *s) {
+void ptos(packet *p, parser_return_t rt, char *str) {
 	char *resolution_str = "";
-	if (rt == SUCCESS) {
-		resolution_str = "PARSER SUCCESS";
-	} else if (rt == ERR_OPEN_DELIMITER) {
-		resolution_str = "PARSER ERROR: ERR_OPEN_DELIMITER";
+	if (rt == ERR_OPEN_DELIMITER) {
+		resolution_str = "PARSER ERROR: ERR_OPEN_DELIMITER\n";
 	} else if (rt == ERR_CLOSE_DELIMITER) {
-		resolution_str = "PARSER ERROR: ERR_CLOSE_DELIMITER";
+		resolution_str = "PARSER ERROR: ERR_CLOSE_DELIMITER\n";
 	} else if (rt == ERR_LEN_MISMATCH) {
-		resolution_str = "PARSER ERROR: ERR_LEN_MISMATCH";
+		resolution_str = "PARSER ERROR: ERR_LEN_MISMATCH\n";
 	} else if (rt == ERR_INVALID_FMT) {
-		resolution_str = "PARSER ERROR: ERR_INVALID_FMT";
-	} else {
-		resolution_str = "PARSER INFORMATION NOT PROVIDED";
-	}
+		resolution_str = "PARSER ERROR: ERR_INVALID_FMT\n";
+	} 
 
 	packet_t pt = p->type;
 
@@ -55,8 +51,8 @@ void ptos(packet *p, parser_return_t rt, char *s) {
 		}
 
 		sprintf(
-				s,
-				"%s\n"
+				str,
+				"%s"
 				"Client ID: 0x%02x\n"
 				"Type: 0x%04x [%s]\n"
 				"Segment No: 0x%02x\n"
@@ -76,8 +72,8 @@ void ptos(packet *p, parser_return_t rt, char *s) {
 	if (pt == ACK) {
 		ack_packet *ap = (ack_packet*) p;
 		sprintf(
-				s,
-				"%s\n"
+				str,
+				"%s"
 				"Client ID: 0x%02x\n"
 				"Type: 0x%04x [ACK]\n"
 				"Received Segment No: 0x%02x\n",
@@ -104,12 +100,12 @@ void ptos(packet *p, parser_return_t rt, char *s) {
 		} else if (reject_id == DUP_PACKET) {
 			reject_str = "DUP_PACKET";
 		} else {
-			reject_str = "INVALID_REJECT_ID";
+			reject_str = "UNDEFINEDE_REJECT_ID";
 		}
 
 		sprintf(
-				s,
-				"%s\n"
+				str,
+				"%s"
 				"Client ID: 0x%02x\n"
 				"Type: 0x%04x [REJECT]\n"
 				"Reject Sub Code: 0x%04x [%s]\n"
@@ -136,28 +132,27 @@ void ptos(packet *p, parser_return_t rt, char *s) {
  * args:
  * -----
  * packet const *cp: a pointer to the client packet
- * packet_t ct: the client packet type
  * parser_return_t prt: the parser return type for the client packet
  * packet* const rp: a pointer to the response packet which will be populated
  *   with data
- * packet_t* const rt: a pointer to the response packet type which will be
- *   populated with the value of the response packet type
  * uint8_t* const client_table: a table of expected segment numbers for clients
  * FILE* verification_db: a pointer to the Verification_Database.txt file
 =============================================================================*/
-void response_packet(
+void resolve_response_packet(
 		packet const *req_p,
 		parser_return_t const req_prt,
 		packet* const res_p,
 		uint8_t* const client_table,
-		FILE* verification_db) {
+		FILE* const verification_db) {
 
-	// only server can send ACK/REJECT
+	// only server can send ACK/REJECT, handles parse errors
 	if (req_p->type == ACK || req_p->type == REJECT || req_prt != SUCCESS) {
 		reject_packet *res_rp = (reject_packet*) res_p;
-		data_packet *req_dp = (data_packet*) req_p;
 
+		// END_PACKET_MISSING reject packet
 		if (req_p->type == DATA && req_prt == ERR_CLOSE_DELIMITER) {
+			data_packet *req_dp = (data_packet*) req_p;
+
 			res_rp->client_id = req_dp->client_id;
 			res_rp->type = REJECT;
 			res_rp->reject_id = END_PACKET_MISSING;
@@ -165,11 +160,63 @@ void response_packet(
 			return;
 		}
 
+		// LEN_MISMATCH reject packet
 		if (req_p->type == DATA && req_prt == ERR_LEN_MISMATCH) {
+			data_packet *req_dp = (data_packet*) req_p;
+
+			res_rp->client_id = req_dp->client_id;
+			res_rp->type = REJECT;
+			res_rp->reject_id = LEN_MISMATCH;
+			res_rp->segment_id = req_dp->segment_id;
+			return;
 		}
 
-		// generic reject response;
+		// generic reject response (non protocol defined errors);
+		res_rp->client_id = req_p->client_id;
+		res_rp->type = REJECT;
+		res_rp->reject_id = 0; // undefined behavior, non protocol defined errors
+		res_rp->segment_id = 0; // undefined error, might not have seg id, set 0
+		return;
 	}
+
+	// we are dealing with a data packet
+	data_packet *req_dp = (data_packet*) req_p;
+	uint8_t client_id = req_dp->client_id;
+	uint8_t segment_id = req_dp->segment_id;
+
+	uint8_t expected_segment_id = client_table[client_id];
+
+	if (segment_id > expected_segment_id) {
+		reject_packet *res_rp = (reject_packet*) res_p;
+
+		res_rp->client_id = client_id;
+		res_rp->type = REJECT;
+		res_rp->reject_id = OUT_OF_SEQ;
+		res_rp->segment_id = segment_id;
+		return;
+	}
+
+
+	if (segment_id < expected_segment_id) {
+		reject_packet *res_rp = (reject_packet*) res_p;
+
+		res_rp->client_id = client_id;
+		res_rp->type = REJECT;
+		res_rp->reject_id = DUP_PACKET;
+		res_rp->segment_id = segment_id;
+		return;
+	}
+
+	// increment expected segment id in client table
+	client_table[client_id] += 1;
+
+	if (req_dp->type == DATA) {
+		ack_packet *res_ap = (ack_packet*) res_p;
+		res_ap->client_id = client_id;
+		res_ap->type = ACK;
+		res_ap->segment_id = segment_id;
+	}
+
 }
 
 parser_return_t parse_packet_buf(
@@ -237,6 +284,8 @@ parser_return_t parse_packet_buf(
 		// copy the payload
 		payload = malloc(sizeof(uint8_t) * len);
 		memcpy(payload, &buf[7], len);
+		// null terminate the payload so we can print it as a string easily
+		payload[len] = 0x0;
 		// set close addr to check closing delimiter
 		close_addr = 7 + len;
 

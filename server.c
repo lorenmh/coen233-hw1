@@ -10,6 +10,7 @@
 // function prototypes
 int parse_packet_buf(char*,packet*);
 int ptos(packet*,parser_return_t,char*);
+int resolve_response_packet(packet*,parser_return_t,packet*,uint8_t*,FILE*);
 
 int main(int argc, char *argv[]) {
 	// remove buffering from stdout
@@ -76,29 +77,27 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
 	}
 
-	char buf[1024];
+	char udp_buf[1024];
 
-	client client_table[0xff];
+	uint8_t client_table[CLIENT_TABLE_SIZE];
 	memset(client_table, 0, sizeof(client_table));
-
-	client c;
 
 	socklen_t len = sizeof(client_addr);
 
+	packet req_p;
+	packet res_p;
+
 	for(;;) {
-		memset(buf, 0, sizeof(buf));
+		memset(udp_buf, 0, sizeof(udp_buf));
 
 		int n = recvfrom(
 			socket_fd,
-			buf,
+			udp_buf,
 			1024,
 			0,//MSG_WAITALL,
 			(struct sockaddr*)&client_addr,
 			&len
 		);
-
-		packet p;
-		err = parse_packet_buf(buf, &p);
 
 		printf("----------------------------------------\n");
 		printf(
@@ -107,8 +106,17 @@ int main(int argc, char *argv[]) {
 			ntohs(client_addr.sin_port)
 		);
 
+		err = parse_packet_buf(udp_buf, &req_p);
+		resolve_response_packet(&req_p, err, &res_p, client_table, NULL);
+
 		char str[1024];
-		ptos(&p, err, str);
+
+		ptos(&req_p, err, str);
 		printf("%s", str);
+
+		ptos(&res_p, SUCCESS, str);
+		printf("%s", str);
+
+
 	}
 }

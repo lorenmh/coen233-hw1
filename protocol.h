@@ -27,7 +27,6 @@ typedef enum tech_t {
 	TECH_5G = 5
 } tech_t;
 
-
 typedef enum reject_t {
 	OUT_OF_SEQ = 0xfff4,
 	LEN_MISMATCH = 0xfff5,
@@ -43,11 +42,12 @@ typedef enum parser_return_t {
 	ERR_INVALID_FMT
 } parser_return_t;
 
-// generic packet type
+// packet is the generic packet type
+// it has the size of the largest packet (so no segfaults occur)
 typedef struct packet {
 	uint8_t client_id;
 	uint16_t type;
-	uint8_t buf[MAX_PACKET_SIZE - 3];
+	uint8_t buf[MAX_PACKET_SIZE - 3]; // client_id and type are 3 bytes
 } packet;
 
 typedef struct data_packet {
@@ -71,14 +71,14 @@ typedef struct reject_packet {
 	uint8_t segment_id;
 } reject_packet;
 
-typedef struct client {
-	uint8_t segment_no;
-} client;
-
-typedef struct client_table {
-	client *ptrs[CLIENT_TABLE_SIZE];
-	client buf[CLIENT_TABLE_SIZE];
-} client_table;
+//typedef struct client {
+//	uint8_t segment_no;
+//} client;
+//
+//typedef struct client_table {
+//	client *ptrs[CLIENT_TABLE_SIZE];
+//	client buf[CLIENT_TABLE_SIZE];
+//} client_table;
 
 //typedef struct packet_list_node {
 //	struct packet_list_node* next;
