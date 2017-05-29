@@ -63,8 +63,12 @@ int main(int argc, char *argv[]) {
 			// fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
 		} else {
 			memcpy(&addr, result->ai_addr, sizeof(*(result->ai_addr)));
+
+			socklen_t len = sizeof(addr);
+			getsockname(socket_fd, (struct sockaddr*)&addr, &len);
+
 			printf(
-				"Bind successful, address: %s, port: %d\n",
+				"Bind successful, host: %s, port: %d\n",
 				inet_ntoa(addr.sin_addr),
 				ntohs(addr.sin_port)
 			);

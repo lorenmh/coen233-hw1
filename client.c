@@ -57,14 +57,22 @@ int main(int argc, char *argv[]) {
 	memset(&client_addr, 0, sizeof(client_addr));
 
 	for (result = results; result != NULL; result = result->ai_next) {
+		// bind to any available port
+		((struct sockaddr_in*) result->ai_addr)->sin_port = 0;
+
+		// attempt bind
 		err = bind(socket_fd, result->ai_addr, result->ai_addrlen);
 
 		if (err) {
 			// fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
 		} else {
 			memcpy(&addr, result->ai_addr, sizeof(*(result->ai_addr)));
+
+			socklen_t len = sizeof(addr);
+			getsockname(socket_fd, (struct sockaddr*)&addr, &len);
+
 			printf(
-				"Bind successful, address: %s, port: %d\n",
+				"Bind successful, host: %s, port: %d\n",
 				inet_ntoa(addr.sin_addr),
 				ntohs(addr.sin_port)
 			);
