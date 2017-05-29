@@ -8,7 +8,7 @@
 #define DELIMITER 0xffff
 #define DELIMITER_STR "\xff\xff"
 #define CLIENT_TABLE_SIZE 0xff
-#define MAX_PACKET_SIZE 264
+#define MAX_PACKET_SIZE 260
 
 typedef enum packet_t {
 	DATA = 0xfff1,

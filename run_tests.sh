@@ -14,7 +14,6 @@ sleep 0.1
 to_hex(){
   n="$1"
   hex=$(echo "obase=16; $n" | bc)
-  hex_len=${#hex}
   hex_escaped=$(echo "$hex" | sed 's/.\{2\}/&\\x/g;s/\\x$//')
   echo "\x$hex_escaped"
 }
@@ -39,14 +38,17 @@ test_data_3=$(data_packet 0 2 'Hello')
 test_data_4=$(data_packet 0 2 'Hello')
 test_data_5=$(data_packet 0 2 'Hello')
 
-echo -n -e "$test_data_1" | nc -u 127.0.0.1 8000 &
-disown
-sleep 1
-echo -n -e "$test_data_2" | nc -u 127.0.0.1 8000 &
-disown
-sleep 1
-echo -n -e "$test_data_3" | nc -u 127.0.0.1 8000 &
-disown
+echo $test_data_1
+
+
+#echo -n -e "$test_data_1" | nc -u 127.0.0.1 8000 &
+#disown
+#sleep 1
+#echo -n -e "$test_data_2" | nc -u 127.0.0.1 8000 &
+#disown
+#sleep 1
+#echo -n -e "$test_data_3" | nc -u 127.0.0.1 8000 &
+#disown
 #echo -n -e "$test_data_4" | nc -u 127.0.0.1 8000 &
 #sleep 0.01
 #echo -n -e "$test_data_5" | nc -u 127.0.0.1 8000 &

@@ -8,7 +8,7 @@
 #include "protocol.h"
 
 // function prototypes
-int parse_packet_buf(char*,packet*);
+int parse_packet_buf(uint8_t*,packet*);
 int ptos(packet*,parser_return_t,char*);
 int resolve_response_packet(packet*,parser_return_t,packet*,uint8_t*,FILE*);
 
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
 	}
 
-	char udp_buf[1024];
+	uint8_t udp_buf[1024];
 
 	uint8_t client_table[CLIENT_TABLE_SIZE];
 	memset(client_table, 0, sizeof(client_table));
@@ -110,16 +110,25 @@ int main(int argc, char *argv[]) {
 			ntohs(client_addr.sin_port)
 		);
 
+		printf("\n");
+		for (int i = 0; i < n; i++) {
+			printf("\\x%02x", udp_buf[i]);
+		}
+		printf("\n");
+
 		err = parse_packet_buf(udp_buf, &req_p);
+
 		resolve_response_packet(&req_p, err, &res_p, client_table, NULL);
 
-		char str[1024];
+		char req_str[1024];
+		char res_str[1024];
 
-		ptos(&req_p, err, str);
-		printf("%s", str);
+		printf("dafuck?\n");
+		ptos(&req_p, err, req_str);
+		printf("%s", req_str);
 
-		ptos(&res_p, SUCCESS, str);
-		printf("%s", str);
+		//ptos(&res_p, SUCCESS, res_str);
+		//printf("%s", res_str);
 
 
 	}
