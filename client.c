@@ -110,6 +110,7 @@ int main(int argc, char *argv[]) {
 
 	if (sock < 0) {
 		fprintf(stderr, "Could not create socket, fd=%d\n", sock);
+		return 1;
 	}
 
 	struct timeval ack_timer;
@@ -125,6 +126,7 @@ int main(int argc, char *argv[]) {
 
 	if (!return_code) {
 		fprintf(stderr, "Could not set timeout option on socket\n");
+		return 1;
 	}
 
 	// HOST ADDRESS RESOLUTION
@@ -147,6 +149,7 @@ int main(int argc, char *argv[]) {
 
 	if (return_code) {
 		fprintf(stderr, "Error invoking getaddrinfo: %s\n", strerror(errno));
+		return 1;
 	}
 
 	// variables used for binding
@@ -177,6 +180,7 @@ int main(int argc, char *argv[]) {
 
 	if (!bind_success) {
 		fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
+		return 1;
 	}
 
 	// RESOLVE SERVER HOST TO ADDRESS
@@ -240,18 +244,20 @@ int main(int argc, char *argv[]) {
 			// print text information for packet
 			printf("%s", str);
 
-			socklen_t len = sizeof(client_addr);
+			// used to print information about response addr
 			struct sockaddr_in response_addr;
 
+			// receive response from server
 			int n = recvfrom(
 				sock,
 				buf,
 				1024,
 				0,
 				(struct sockaddr*)&response_addr,
-				&len
+				&addr_len
 			);
 
+			// check if timeout has occured
 			if (errno == EAGAIN || n <= 0) {
 				retry_counter += 1;
 
@@ -264,9 +270,10 @@ int main(int argc, char *argv[]) {
 
 				continue;
 			}
-			
+
 			received_response = 1;
 
+			// print information for packet received
 			printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
 			printf(
 				"[RECEIVED] address: %s, port: %d\n",
@@ -274,17 +281,25 @@ int main(int argc, char *argv[]) {
 				ntohs(response_addr.sin_port)
 			);
 
+			// print received packet as a hex string
 			hexp(buf, n);
 
+			// parse received packet
 			return_code = parse_packet_buf(buf, n, &res_p);
 
+			// populate str with text information for received packet
 			ptos(&res_p, return_code, str);
+
+			// print text information for packet
 			printf("%s", str);
 		}
 
+		// print error message if no message received
 		if (!received_response) {
-			printf("Server does not respond\n");
-			break;
+			fprintf(stderr, "Server does not respond\n");
+			return 1;
 		}
 	}
+
+	return 0;
 }

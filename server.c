@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
 
 	if (sock < 0) {
 		fprintf(stderr, "Could not create socket, fd=%d\n", sock);
+		return 1;
 	}
 
 	// initialize client table which contains the next expected segment id for a
@@ -55,6 +56,7 @@ int main(int argc, char *argv[]) {
 	FILE *db = fopen(DB_FNAME, "r");
 	if (db == NULL) {
 		fprintf(stderr, "Could not open file '%s'\n", DB_FNAME);
+		return 1;
 	}
 
 	// HOST ADDRESS RESOLUTION
@@ -76,6 +78,7 @@ int main(int argc, char *argv[]) {
 
 	if (return_code) {
 		fprintf(stderr, "Error invoking getaddrinfo: %s\n", strerror(errno));
+		return 1;
 	}
 
 	// variables used for binding
@@ -106,6 +109,7 @@ int main(int argc, char *argv[]) {
 
 	if (!bind_success) {
 		fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
+		return 1;
 	}
 
 	// initialize client_addr, is used to send response datagrams
@@ -144,14 +148,22 @@ int main(int argc, char *argv[]) {
 		// print packet as a hex string
 		hexp(buf, n);
 
+		// parse buffer into packet
 		return_code = parse_packet_buf(buf, n, &req_p);
-		resolve_response_packet(&req_p, return_code, &res_p, client_table, db);
 
+		// populate str with text information for received packet
 		ptos(&req_p, return_code, str);
+
+		// print text information for packet
 		printf("%s", str);
 
+		// generate a packet response
+		resolve_response_packet(&req_p, return_code, &res_p, client_table, db);
+
+		// convert packet to byte buffer
 		n = ptob(&res_p, buf);
 
+		// write byte buffer to socket
 		sendto(
 			sock,
 			buf,
@@ -161,6 +173,7 @@ int main(int argc, char *argv[]) {
 			sizeof(client_addr)
 		);
 
+		// print information for packet sent
 		printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
 		printf(
 			"[SENT] address: %s, port: %d\n",
@@ -168,9 +181,15 @@ int main(int argc, char *argv[]) {
 			ntohs(client_addr.sin_port)
 		);
 
+		// print packet as a hex string
 		hexp(buf, n);
 
+		// populate str with text information for sent packet
 		ptos(&res_p, SUCCESS, str);
+
+		// print text information for packet
 		printf("%s", str);
 	}
+
+	return 0;
 }
