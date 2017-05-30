@@ -10,13 +10,18 @@ void hexp(uint8_t *buf, int n) {
 	printf("\n");
 }
 
-// query, first byte == tech, next 4 bytes == subscriber number
-return_t query(FILE *fh, uint8_t *query) {
+void qtos(uint8_t *query, char *sn_str, char *tech_str) {
 	uint32_t sn_little_endian;
 	memcpy(&sn_little_endian, &query[1], 4);
 	uint32_t sn = ntohl(sn_little_endian);
 	uint8_t tech = query[0];
 
+	sprintf(sn_str, "%010lu", (long) sn);
+	sprintf(tech_str, "%02u", tech);
+}
+
+// query, first byte == tech, next 4 bytes == subscriber number
+return_t db_query(FILE *fh, uint8_t *query) {
 	char sn_str[11];
 	char tech_str[3];
 
@@ -28,8 +33,7 @@ return_t query(FILE *fh, uint8_t *query) {
 	char tech_column[3];
 	char auth_column[2];
 
-	sprintf(sn_str, "%010lu", (long) sn);
-	sprintf(tech_str, "%02u", tech);
+	qtos(query, sn_str, tech_str);
 
 	fseek(fh, 0, SEEK_SET);
 
@@ -155,15 +159,37 @@ void ptos(packet *p, return_t rt, char *str) {
 		data_packet *dp = (data_packet*) p;
 
 		char *type_s = "DATA";
-		if (pt == ACC_PER) {
-			type_s = "ACC_PER";
-		} else if (pt == NOT_PAID) {
-			type_s = "NOT_PAID";
-		} else if (pt == NOT_EXIST) {
-			type_s = "NOT_EXIST";
-		} else if (pt == ACCESS_OK) {
-			type_s = "ACCESS_OK";
+		char payload_s[258]; // null and quotes; 255 + 2 quotes + null term = 258
+
+		if (pt == DATA) {
+			payload_s[0] = '\'';
+			memcpy(&payload_s[1], dp->payload, dp->len);
+			payload_s[dp->len+1] = '\'';
+			payload_s[dp->len+2] = '\0';
+		} else {
+			char sn_str[11];
+			char tech_str[3];
+
+			qtos(dp->payload, sn_str, tech_str);
+
+			sprintf(
+					payload_s,
+					"[AUTH PAYLOAD] Tech: %s, Subscriber No: %s",
+					tech_str,
+					sn_str
+			);
+
+			if (pt == ACC_PER) {
+				type_s = "ACC_PER";
+			} else if (pt == NOT_PAID) {
+				type_s = "NOT_PAID";
+			} else if (pt == NOT_EXIST) {
+				type_s = "NOT_EXIST";
+			} else if (pt == ACCESS_OK) {
+				type_s = "ACCESS_OK";
+			}
 		}
+
 
 		sprintf(
 				str,
@@ -172,14 +198,14 @@ void ptos(packet *p, return_t rt, char *str) {
 				"Type: 0x%04x [%s]\n"
 				"Segment No: 0x%02x\n"
 				"Length: 0x%02x\n"
-				"Payload: '%s'\n",
+				"Payload: %s\n",
 				resolution_str,
 				dp->client_id,
 				dp->type,
 				type_s,
 				dp->segment_id,
 				dp->len,
-				dp->payload
+				payload_s
 		);
 		return;
 	}
@@ -258,10 +284,10 @@ void resolve_response_packet(
 		return_t const req_prt,
 		packet* const res_p,
 		uint8_t* const client_table,
-		FILE* const verification_db) {
+		FILE* const db) {
 
-	// only server can send ACK/REJECT, handles parse errors
-	if (req_p->type == ACK || req_p->type == REJECT || req_prt != SUCCESS) {
+	// client can only send types of DATA or ACC_PER
+	if ((req_p->type != DATA && req_p->type != ACC_PER) || req_prt != SUCCESS) {
 		reject_packet *res_rp = (reject_packet*) res_p;
 
 		// END_PACKET_MISSING reject packet
@@ -286,7 +312,9 @@ void resolve_response_packet(
 			return;
 		}
 
-		// generic reject response (non protocol defined errors);
+		// generic reject response (non protocol defined errors), for example, if
+		// the client sent an ACK request, this is an error but it is not defined
+		// by the assignment document.
 		res_rp->client_id = req_p->client_id;
 		res_rp->type = REJECT;
 		res_rp->reject_id = 0; // undefined behavior, non protocol defined errors
@@ -330,8 +358,34 @@ void resolve_response_packet(
 		res_ap->client_id = client_id;
 		res_ap->type = ACK;
 		res_ap->segment_id = segment_id;
+		return;
 	}
 
+	// this is an access permission request
+	uint8_t *query = req_dp->payload;
+	return_t db_result = db_query(db, query);
+
+	data_packet *res_dp = (data_packet*) res_p;
+	res_dp->client_id = client_id;
+	res_dp->segment_id = segment_id;
+	res_dp->len = 5;
+	res_dp->payload = malloc(5);
+	memcpy(res_dp->payload, query, 5);
+
+	if (db_result == DB_AUTHORIZED) {
+		res_dp->type = ACCESS_OK;
+		return;
+	}
+
+	if (db_result == DB_NOT_AUTHORIZED) {
+		res_dp->type = NOT_PAID;
+		return;
+	}
+
+	if (db_result == DB_NOT_FOUND) {
+		res_dp->type = NOT_EXIST;
+		return;
+	}
 }
 
 return_t parse_packet_buf(
@@ -340,7 +394,7 @@ return_t parse_packet_buf(
 		void* const p) {
 
 	uint8_t client_id;
-	uint16_t type;
+	uint16_t pt;
 	uint8_t segment_id;
 	uint8_t len = 0;
 	uint8_t *payload = 0;
@@ -362,12 +416,12 @@ return_t parse_packet_buf(
 	// copy the client id
 	memcpy(&client_id, &packet_buf[2], 1);
 
-	// copy the type
+	// copy the pt
 	memcpy(&hostshort, &packet_buf[3], 2);
-	type = ntohs(hostshort);
+	pt = ntohs(hostshort);
 
-	// check the type, populate as necessary
-	if (type == ACK) {
+	// check the pt, populate as necessary
+	if (pt == ACK) {
 		ack_packet *ap = (ack_packet*) p;
 
 		// copy segment id
@@ -375,10 +429,10 @@ return_t parse_packet_buf(
 		// set close addr to check closing delimiter
 
 		ap->client_id = client_id;
-		ap->type = type;
+		ap->type = pt;
 		ap->segment_id = segment_id;
 
-	} else if (type == REJECT) {
+	} else if (pt == REJECT) {
 		reject_packet *rp = (reject_packet*) p;
 
 		// copy reject id
@@ -389,10 +443,12 @@ return_t parse_packet_buf(
 		// set close addr to check closing delimiter
 
 		rp->client_id = client_id;
-		rp->type = type;
+		rp->type = pt;
 		rp->reject_id = reject_id;
 		rp->segment_id = segment_id;
-	} else if (type == DATA) {
+	} else if (
+			pt == DATA || pt == ACC_PER || pt == NOT_PAID ||
+			pt == NOT_EXIST || pt == ACCESS_OK) {
 		data_packet *dp = (data_packet*) p;
 
 		// copy segment id
@@ -407,7 +463,7 @@ return_t parse_packet_buf(
 		// set close addr to check closing delimiter
 
 		dp->client_id = client_id;
-		dp->type = type;
+		dp->type = pt;
 		dp->segment_id = segment_id;
 		dp->len = len;
 		dp->payload = payload;

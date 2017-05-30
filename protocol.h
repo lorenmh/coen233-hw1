@@ -27,13 +27,6 @@ typedef enum packet_t {
 	ACCESS_OK = 0xfffb
 } packet_t;
 
-typedef enum tech_t {
-	TECH_2G = 2,
-	TECH_3G = 3,
-	TECH_4G = 4,
-	TECH_5G = 5
-} tech_t;
-
 typedef enum reject_t {
 	OUT_OF_SEQ = 0xfff4,
 	LEN_MISMATCH = 0xfff5,

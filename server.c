@@ -9,78 +9,95 @@
 
 #define DB_FNAME "Verification_Database.txt"
 
-// function prototypes
-int parse_packet_buf(uint8_t*,int,packet*);
-int ptos(packet*,return_t,char*);
-int resolve_response_packet(packet*,return_t,packet*,uint8_t*,FILE*);
-int ptob(packet*,uint8_t*);
-void hexp(uint8_t*,int);
-int query(FILE*,uint8_t*);
+/******************************************************************************
+ * FUNCTION PROTOTYPES
+ *****************************************************************************/
+int parse_packet_buf(uint8_t*, int, packet*);
+int ptos(packet*, return_t, char*);
+int resolve_response_packet(packet*, return_t, packet*, uint8_t*, FILE*);
+int ptob(packet*, uint8_t*);
+void hexp(uint8_t*, int);
+int query(FILE*, uint8_t*);
 
+/******************************************************************************
+ * MAIN
+ *****************************************************************************/
 int main(int argc, char *argv[]) {
 	// remove buffering from stdout
 	setbuf(stdout, NULL);
 
 	if (argc != 3) {
 		fprintf(stderr, "Error: Missing required arg, needs <server-hostname> ");
-		fprintf(stderr, "<server-port> <client-hostname> <client-port>\n");
+		fprintf(stderr, "<server-port>\n");
 		return 1;
 	}
 
+	// server information from argv
 	char const *server_hostname = argv[1];
 	char const *server_port = argv[2];
 
-	int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+	// used throughout the app to check the return code of function invocations
+	int return_code;
 
-	if (socket_fd < 0) {
-		fprintf(stderr, "Could not create socket, fd=%d\n", socket_fd);
+	// the UDP datagram socket
+	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+	if (sock < 0) {
+		fprintf(stderr, "Could not create socket, fd=%d\n", sock);
 	}
 
+	// initialize client table which contains the next expected segment id for a
+	// given client index
+	uint8_t client_table[CLIENT_TABLE_SIZE];
+	memset(client_table, 0, sizeof(client_table));
+
+	// the file DB used for verifying authentication
 	FILE *db = fopen(DB_FNAME, "r");
 	if (db == NULL) {
 		fprintf(stderr, "Could not open file '%s'\n", DB_FNAME);
 	}
 
+	// HOST ADDRESS RESOLUTION
+	// variables used for host address resolution
 	struct addrinfo hints;
 	struct addrinfo *results;
 	struct addrinfo *result;
 
-	// clear out hints
+	// clear hints segment
 	memset(&hints, 0, sizeof(hints));
 
 	// set hints fields for getaddrinfo
 	hints.ai_protocol = 0;
 	hints.ai_flags = AI_ADDRCONFIG;
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_DGRAM;
 
-	int err = getaddrinfo(server_hostname, server_port, &hints, &results);
+	return_code = getaddrinfo(server_hostname, server_port, &hints, &results);
 
-	if (err) {
+	if (return_code) {
 		fprintf(stderr, "Error invoking getaddrinfo: %s\n", strerror(errno));
 	}
 
+	// variables used for binding
+	struct sockaddr_in server_addr;
+	memset(&server_addr, 0, sizeof(server_addr));
+	socklen_t addr_len = sizeof(server_addr);
+
 	int bind_success = 0;
-	struct sockaddr_in addr;
-	struct sockaddr_in client_addr;
-	memset(&addr, 0, sizeof(addr));
-	memset(&client_addr, 0, sizeof(client_addr));
 
+	// ATTEMPT BIND
 	for (result = results; result != NULL; result = result->ai_next) {
-		err = bind(socket_fd, result->ai_addr, result->ai_addrlen);
+		return_code = bind(sock, result->ai_addr, result->ai_addrlen);
 
-		if (err) {
-			// fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
-		} else {
-			memcpy(&addr, result->ai_addr, sizeof(*(result->ai_addr)));
+		if (!return_code) {
+			memcpy(&server_addr, result->ai_addr, sizeof(*(result->ai_addr)));
 
-			socklen_t len = sizeof(addr);
-			getsockname(socket_fd, (struct sockaddr*)&addr, &len);
+			getsockname(sock, (struct sockaddr*)&server_addr, &addr_len);
 
 			printf(
 				"Bind successful, host: %s, port: %d\n",
-				inet_ntoa(addr.sin_addr),
-				ntohs(addr.sin_port)
+				inet_ntoa(server_addr.sin_addr),
+				ntohs(server_addr.sin_port)
 			);
 			bind_success = 1;
 			break;
@@ -91,28 +108,32 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Error binding socket: %s\n", strerror(errno));
 	}
 
-	uint8_t udp_buf[1024];
-
-	uint8_t client_table[CLIENT_TABLE_SIZE];
-	memset(client_table, 0, sizeof(client_table));
-
+	// initialize client_addr, is used to send response datagrams
+	struct sockaddr_in client_addr;
+	memset(&client_addr, 0, sizeof(client_addr));
 	socklen_t len = sizeof(client_addr);
 
+	// initialize request packet and response packet onto stack
 	packet req_p;
 	packet res_p;
 
-	for(;;) {
-		memset(udp_buf, 0, sizeof(udp_buf));
+	// generic stack allocated buffer
+	uint8_t buf[1024];
+	// char buffer used to print information
+	char str[1024];
 
+	for(;;) {
+		// receive UDP packets, blocking
 		int n = recvfrom(
-			socket_fd,
-			udp_buf,
-			1024,
+			sock,
+			buf,
+			sizeof(buf),
 			0,//MSG_WAITALL,
 			(struct sockaddr*)&client_addr,
 			&len
 		);
 
+		// print information for packet received
 		printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
 		printf(
 			"[RECEIVED] address: %s, port: %d\n",
@@ -120,23 +141,20 @@ int main(int argc, char *argv[]) {
 			ntohs(client_addr.sin_port)
 		);
 
-		hexp(udp_buf, n);
+		// print packet as a hex string
+		hexp(buf, n);
 
-		err = parse_packet_buf(udp_buf, n, &req_p);
+		return_code = parse_packet_buf(buf, n, &req_p);
+		resolve_response_packet(&req_p, return_code, &res_p, client_table, db);
 
-		resolve_response_packet(&req_p, err, &res_p, client_table, NULL);
-
-		char str[1024];
-		//char res_str[1024];
-
-		ptos(&req_p, err, str);
+		ptos(&req_p, return_code, str);
 		printf("%s", str);
 
-		n = ptob(&res_p, udp_buf);
+		n = ptob(&res_p, buf);
 
 		sendto(
-			socket_fd,
-			udp_buf,
+			sock,
+			buf,
 			n,
 			0,
 			(struct sockaddr*) &client_addr,
@@ -150,7 +168,7 @@ int main(int argc, char *argv[]) {
 			ntohs(client_addr.sin_port)
 		);
 
-		hexp(udp_buf, n);
+		hexp(buf, n);
 
 		ptos(&res_p, SUCCESS, str);
 		printf("%s", str);
