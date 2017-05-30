@@ -1,0 +1,232 @@
+Bind successful, host: 127.0.0.1, port: 8000
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x00\xff\xf1\x00\x02\x48\x69\xff\xff
+Client ID: 0x00
+Type: 0xfff1 [DATA]
+Segment No: 0x00
+Length: 0x02
+Payload: 'Hi'
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x00\xff\xf2\x00\xff\xff
+Client ID: 0x00
+Type: 0xfff2 [ACK]
+Received Segment No: 0x00
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x00\xff\xf1\x01\x02\x48\x69\xff\xff
+Client ID: 0x00
+Type: 0xfff1 [DATA]
+Segment No: 0x01
+Length: 0x02
+Payload: 'Hi'
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x00\xff\xf2\x01\xff\xff
+Client ID: 0x00
+Type: 0xfff2 [ACK]
+Received Segment No: 0x01
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x00\xff\xf1\x02\x02\x48\x69\xff\xff
+Client ID: 0x00
+Type: 0xfff1 [DATA]
+Segment No: 0x02
+Length: 0x02
+Payload: 'Hi'
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x00\xff\xf2\x02\xff\xff
+Client ID: 0x00
+Type: 0xfff2 [ACK]
+Received Segment No: 0x02
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x00\xff\xf1\x03\x02\x48\x69\xff\xff
+Client ID: 0x00
+Type: 0xfff1 [DATA]
+Segment No: 0x03
+Length: 0x02
+Payload: 'Hi'
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x00\xff\xf2\x03\xff\xff
+Client ID: 0x00
+Type: 0xfff2 [ACK]
+Received Segment No: 0x03
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x00\xff\xf1\x04\x02\x48\x69\xff\xff
+Client ID: 0x00
+Type: 0xfff1 [DATA]
+Segment No: 0x04
+Length: 0x02
+Payload: 'Hi'
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x00\xff\xf2\x04\xff\xff
+Client ID: 0x00
+Type: 0xfff2 [ACK]
+Received Segment No: 0x04
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x01\xff\xf1\x00\x02\x48\x69\xff\xff
+Client ID: 0x01
+Type: 0xfff1 [DATA]
+Segment No: 0x00
+Length: 0x02
+Payload: 'Hi'
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x01\xff\xf2\x00\xff\xff
+Client ID: 0x01
+Type: 0xfff2 [ACK]
+Received Segment No: 0x00
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x01\xff\xf1\x02\x02\x48\x69\xff\xff
+Client ID: 0x01
+Type: 0xfff1 [DATA]
+Segment No: 0x02
+Length: 0x02
+Payload: 'Hi'
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x01\xff\xf3\xff\xf4\x02\xff\xff
+Client ID: 0x01
+Type: 0xfff3 [REJECT]
+Reject Sub Code: 0xfff4 [OUT_OF_SEQ]
+Received Segment No: 0x02
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x01\xff\xf1\x01\x01\x48\x69\xff\xff
+PARSER ERROR: ERR_LEN_MISMATCH
+Client ID: 0x01
+Type: 0xfff1 [DATA]
+Segment No: 0x01
+Length: 0x01
+Payload: 'H'
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x01\xff\xf3\xff\xf5\x01\xff\xff
+Client ID: 0x01
+Type: 0xfff3 [REJECT]
+Reject Sub Code: 0xfff5 [LEN_MISMATCH]
+Received Segment No: 0x01
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x01\xff\xf1\x01\x02\x48\x69\xff\xf0
+PARSER ERROR: ERR_CLOSE_DELIMITER
+Client ID: 0x01
+Type: 0xfff1 [DATA]
+Segment No: 0x01
+Length: 0x02
+Payload: 'Hi'
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x01\xff\xf3\xff\xf6\x01\xff\xff
+Client ID: 0x01
+Type: 0xfff3 [REJECT]
+Reject Sub Code: 0xfff6 [END_PACKET_MISSING]
+Received Segment No: 0x01
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x01\xff\xf1\x00\x02\x48\x69\xff\xff
+Client ID: 0x01
+Type: 0xfff1 [DATA]
+Segment No: 0x00
+Length: 0x02
+Payload: 'Hi'
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x01\xff\xf3\xff\xf7\x00\xff\xff
+Client ID: 0x01
+Type: 0xfff3 [REJECT]
+Reject Sub Code: 0xfff7 [DUP_PACKET]
+Received Segment No: 0x00
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x02\xff\xf8\x00\x05\x04\xf3\x84\x7f\x35\xff\xff
+Client ID: 0x02
+Type: 0xfff8 [ACC_PER]
+Segment No: 0x00
+Length: 0x05
+Payload: [AUTH PAYLOAD] Tech: 04, Subscriber No: 4085546805
+[DB AUTHORIZED]: <4085546805> <04> <1>
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x02\xff\xfb\x00\x05\x04\xf3\x84\x7f\x35\xff\xff
+Client ID: 0x02
+Type: 0xfffb [ACCESS_OK]
+Segment No: 0x00
+Length: 0x05
+Payload: [AUTH PAYLOAD] Tech: 04, Subscriber No: 4085546805
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x03\xff\xf8\x00\x05\x01\xf3\x84\x7f\x35\xff\xff
+Client ID: 0x03
+Type: 0xfff8 [ACC_PER]
+Segment No: 0x00
+Length: 0x05
+Payload: [AUTH PAYLOAD] Tech: 01, Subscriber No: 4085546805
+[DB NOT AUTHORIZED]: <4085546805> <01>
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x03\xff\xf9\x00\x05\x01\xf3\x84\x7f\x35\xff\xff
+Client ID: 0x03
+Type: 0xfff9 [NOT_PAID]
+Segment No: 0x00
+Length: 0x05
+Payload: [AUTH PAYLOAD] Tech: 01, Subscriber No: 4085546805
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x04\xff\xf8\x00\x05\x03\xf3\x84\x87\x15\xff\xff
+Client ID: 0x04
+Type: 0xfff8 [ACC_PER]
+Segment No: 0x00
+Length: 0x05
+Payload: [AUTH PAYLOAD] Tech: 03, Subscriber No: 4085548821
+[DB NOT AUTHORIZED]: <4085548821> <03> <0>
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x04\xff\xf9\x00\x05\x03\xf3\x84\x87\x15\xff\xff
+Client ID: 0x04
+Type: 0xfff9 [NOT_PAID]
+Segment No: 0x00
+Length: 0x05
+Payload: [AUTH PAYLOAD] Tech: 03, Subscriber No: 4085548821
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x05\xff\xf8\x00\x05\x02\xf3\x84\x87\x15\xff\xff
+Client ID: 0x05
+Type: 0xfff8 [ACC_PER]
+Segment No: 0x00
+Length: 0x05
+Payload: [AUTH PAYLOAD] Tech: 02, Subscriber No: 4085548821
+[DB AUTHORIZED]: <4085548821> <02> <1>
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x05\xff\xfb\x00\x05\x02\xf3\x84\x87\x15\xff\xff
+Client ID: 0x05
+Type: 0xfffb [ACCESS_OK]
+Segment No: 0x00
+Length: 0x05
+Payload: [AUTH PAYLOAD] Tech: 02, Subscriber No: 4085548821
+<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+[RECEIVED] address: 127.0.0.1, port: 50950
+\xff\xff\x06\xff\xf8\x00\x05\x02\xf3\x42\xb2\x87\xff\xff
+Client ID: 0x06
+Type: 0xfff8 [ACC_PER]
+Segment No: 0x00
+Length: 0x05
+Payload: [AUTH PAYLOAD] Tech: 02, Subscriber No: 4081234567
+[DB NOT FOUND]: <4081234567>
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[SENT] address: 127.0.0.1, port: 50950
+\xff\xff\x06\xff\xfa\x00\x05\x02\xf3\x42\xb2\x87\xff\xff
+Client ID: 0x06
+Type: 0xfffa [NOT_EXIST]
+Segment No: 0x00
+Length: 0x05
+Payload: [AUTH PAYLOAD] Tech: 02, Subscriber No: 4081234567

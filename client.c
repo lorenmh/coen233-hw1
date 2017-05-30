@@ -1,3 +1,10 @@
+/*============================================================================
+ * client.c:
+ * ---------
+ * Contains source code for the client program, as well as some demo packets to
+ * send
+=============================================================================*/
+
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -113,6 +120,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	// set timeout for the socket
 	struct timeval ack_timer;
 	ack_timer.tv_sec = ACK_TIMER;
 
@@ -124,7 +132,7 @@ int main(int argc, char *argv[]) {
 			sizeof(ack_timer)
 	);
 
-	if (!return_code) {
+	if (return_code < 0) {
 		fprintf(stderr, "Could not set timeout option on socket\n");
 		return 1;
 	}
@@ -263,7 +271,7 @@ int main(int argc, char *argv[]) {
 
 				if (retry_counter <= MAX_CLIENT_RETRY) {
 					printf(
-							"Did not receive ACK after %d seconds, retrying...\n",
+							"Did not receive response after %d seconds, retrying...\n",
 							ACK_TIMER
 					);
 				}

@@ -1,5 +1,11 @@
-#ifndef __TYPES__
-#define __TYPES__
+/*============================================================================
+ * protocol.h:
+ * -----------
+ * Contains type definitions, constants, etc., for the protocol
+=============================================================================*/
+
+#ifndef __PROTOCOL_H__
+#define __PROTOCOL_H__
 
 #include <string.h>
 #include <stdint.h>
@@ -12,11 +18,13 @@
 #define ACK_TIMER 3
 #define MAX_CLIENT_RETRY 3
 
+// special type for demo packets (size is variable)
 typedef struct demo_packet {
 	int size;
-	uint8_t buf[128];
+	uint8_t buf[128]; // it is assumed no packet demoed will be > 128 bytes
 } demo_packet;
 
+// packet type
 typedef enum packet_t {
 	DATA = 0xfff1,
 	ACK = 0xfff2,
@@ -27,6 +35,7 @@ typedef enum packet_t {
 	ACCESS_OK = 0xfffb
 } packet_t;
 
+// reject type
 typedef enum reject_t {
 	OUT_OF_SEQ = 0xfff4,
 	LEN_MISMATCH = 0xfff5,
@@ -34,6 +43,7 @@ typedef enum reject_t {
 	DUP_PACKET = 0xfff7
 } reject_t;
 
+// return type (used throughout applications)
 typedef enum return_t {
 	SUCCESS = 0,
 	ERR_OPEN_DELIMITER,
@@ -73,37 +83,5 @@ typedef struct reject_packet {
 	uint16_t reject_id;
 	uint8_t segment_id;
 } reject_packet;
-
-//typedef struct client {
-//	uint8_t segment_no;
-//} client;
-//
-//typedef struct client_table {
-//	client *ptrs[CLIENT_TABLE_SIZE];
-//	client buf[CLIENT_TABLE_SIZE];
-//} client_table;
-
-//typedef struct packet_list_node {
-//	struct packet_list_node* next;
-//	packet* p;
-//} packet_list_node;
-//
-//// linked list to hold packets from a client
-//typedef struct packet_list {
-//	packet_list_node *head;
-//	packet_list_node *tail;
-//	packet_list_node *buf;
-//	uint16_t size;
-//} packet_list;
-//
-//typedef struct client {
-//	packet_t *packet_list;
-//} client;
-//
-//typedef struct client_table {
-//	client *table[CLIENT_TABLE_SIZE];
-//	size_t size;
-//} client_tree;
-
 
 #endif
